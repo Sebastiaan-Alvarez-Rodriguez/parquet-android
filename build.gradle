@@ -1,0 +1,142 @@
+buildscript {
+    ext {
+        parquet_version = '1.12.3'
+        parquet_floor_version = '1.33'
+    }
+
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+group 'org.parquet.android'
+version '1.0'
+
+static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
+    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
+}
+
+def addPropertyOrEnv(String propertyKey, String envKey) {
+    File propertiesFile = project.rootProject.file('local.properties')
+    if (propertiesFile.isFile()) {
+        Properties properties = new Properties()
+        properties.load(propertiesFile.newDataInputStream())
+        return addPropertyOrEnv(properties, propertyKey, envKey)
+    }
+    return null
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/strategicblue/parquet-floor"
+            credentials {
+                username = addPropertyOrEnv("gpr.user", "USERNAME")
+                password = addPropertyOrEnv("gpr.token", "TOKEN")
+
+                if (username == null || password == null)
+                    throw RuntimeException("""
+username="$username", token="$password"
+Did you provide a github token? This is (sadly) required. Please see the docs.
+""")
+                // Github presents packages using a maven interface.
+                // Sadly, they force us to provide a stupid token to download a package from this interface,
+                // even when repo is publicly available.
+                // The token requires only the read:package permission.
+                // NEVER publish tokens online.
+                // Always place these tokens in environment variables (which are not accidentally pushed),
+                // or in files that are explicitly not published (e.g. /local.properties).
+                // Once Github fixes this needless token access for public repo packages, we will remove this.
+            }
+        }
+    }
+}
+
+dependencies {
+    api project(path: ':core', configuration: 'shadow')
+    shadow "org.apache.parquet:parquet-common:$parquet_version"
+    shadow "org.apache.parquet:parquet-encoding:$parquet_version"
+    shadow "org.apache.parquet:parquet-format-structures:$parquet_version"
+    shadow "org.apache.parquet:parquet-jackson:$parquet_version"
+    shadow "org.apache.yetus:audience-annotations:0.13.0"
+    shadow "org.slf4j:slf4j-api:1.7.22"
+    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
+}
+
+jar {}
+
+shadowJar {
+    //noinspection GroovyAccessibility
+    archiveClassifier = null
+}
+publishing {
+    repositories {
+
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android")
+            credentials {
+                username = addPropertyOrEnv("gpr.user", "USERNAME")
+                password = addPropertyOrEnv("gpr.token", "TOKEN")
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) { publication ->
+            project.shadow.component(publication)
+            pom {
+                name = "parquet-android"
+                description = "Read and write parquet files on Android with ease."
+                url = "https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android"
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android/blob/master/LICENSE'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'sebastiaan-alvarez-rodriguez'
+                        name = 'Sebastiaan Alvarez Rodriguez'
+                        email = ''
+                    }
+                }
+            }
+
+            pom.withXml {
+                var pomNode = asNode()
+                pomNode.dependencies.'*'.findAll() {
+                    it.artifactId.text() == 'parquet-merged' || it.artifactId.text() == 'core'
+                }.each() {
+                    it.parent().remove(it)
+                }
+            }
+
+            groupId  group
+            artifactId "parquet-android"
+            version version
+//            artifact ("/scratch/test/jars/myArtifact.jar")
+
+//            pom.withXml {
+//                def dependencies  = asNode().appendNode("dependencies")
+//                configurations.implementation.allDependencies.each {  dep ->
+//                    def depNode  = dependencies.appendNode("dependency")
+//                    depNode.appendNode("groupId", dep.group)
+//                    depNode.appendNode("artifactId", dep.name)
+//                    depNode.appendNode("version", dep.version)
+//                }
+//            }
+        }
+    }
+}

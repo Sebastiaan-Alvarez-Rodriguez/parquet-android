@@ -1,0 +1,33 @@
+/**
+ * Goal of this module: Add parquet-floor to the merged parquet-column and parquet-hadoop,
+ * We also add a pom file with original parquet-floor dependencies,
+ * excluding parquet-column and parquet-hadoop.
+ */
+
+
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'java-library'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+group 'org.parquet.android'
+version '1.0-SNAPSHOT'
+
+dependencies {
+    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
+        transitive = false
+    }
+    implementation project(path: ':parquet-merged', configuration: 'shadow')
+}
+
+jar {}
+
+shadowJar {}
+

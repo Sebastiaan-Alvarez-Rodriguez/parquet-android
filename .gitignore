@@ -1,0 +1,8 @@
+build/
+*.jar
+
+/local.properties
+/.gradle/
+!/gradle/wrapper/gradle-wrapper.jar
+
+/.idea/

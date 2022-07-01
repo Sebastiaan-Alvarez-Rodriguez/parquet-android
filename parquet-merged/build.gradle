@@ -1,0 +1,32 @@
+/**
+ * Goal of this module: Merge parquet-column and parquet-hadoop,
+ * since they have some duplicate files inside, which android does not like.
+ * After merging, we have 1 jar with no duplicate files inside.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'java-library'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+group 'org.parquet.android'
+version '1.0-SNAPSHOT'
+
+
+dependencies {
+    implementation("org.apache.parquet:parquet-hadoop:$parquet_version") {
+        transitive = false
+    }
+    implementation("org.apache.parquet:parquet-column:$parquet_version") {
+        transitive = false
+    }
+}
+
+shadowJar {}
