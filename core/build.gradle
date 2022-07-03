@@ -25,9 +25,14 @@ dependencies {
         transitive = false
     }
     implementation project(path: ':parquet-merged', configuration: 'shadow')
+    implementation "org.xerial.snappy:snappy-java:1.1.8.3"
 }
 
 jar {}
 
-shadowJar {}
+shadowJar {
+    dependencies {
+        exclude(dependency("org.xerial.snappy:snappy-java:1.1.8.3"))
+    }
+}
 
