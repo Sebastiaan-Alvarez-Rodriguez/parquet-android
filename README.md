@@ -10,6 +10,7 @@ Current package is under 3MB.
 
 ### Prerequisites
  1. A GitHub Personal Access Token (PAT) with `read:package` permission.
+ 2. Any java 11 distribution, preferably `openjdk-11`.
 
 ## Usage
 
