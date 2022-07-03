@@ -1,5 +1,6 @@
 buildscript {
     ext {
+        our_version = '1.0.0'
         parquet_version = '1.12.3'
         parquet_floor_version = '1.33'
     }
@@ -17,7 +18,7 @@ plugins {
 }
 
 group 'org.parquet.android'
-version '1.0'
+version our_version
 
 static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
     return properties.getProperty(propertyKey) ?: System.getenv(envKey)
@@ -69,15 +70,21 @@ dependencies {
     shadow "org.apache.parquet:parquet-jackson:$parquet_version"
     shadow "org.apache.yetus:audience-annotations:0.13.0"
     shadow "org.slf4j:slf4j-api:1.7.22"
-    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
+//    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
 }
+
+
+//java {
+//    withJavadocJar()
+//    withSourcesJar()
+//}
 
 jar {}
 
 shadowJar {
-    //noinspection GroovyAccessibility
-    archiveClassifier = null
+    archiveClassifier.set('')
 }
+
 publishing {
     repositories {
 
@@ -93,6 +100,8 @@ publishing {
     publications {
         maven(MavenPublication) { publication ->
             project.shadow.component(publication)
+//            artifacts = [ shadowJar, javadocJar, sourcesJar ]
+
             pom {
                 name = "parquet-android"
                 description = "Read and write parquet files on Android with ease."
