@@ -49,26 +49,22 @@ public class PureJavaSnappy implements SnappyApi
     public int rawCompress(ByteBuffer input, int inputOffset, int inputLength, ByteBuffer compressed, int outputOffset)
             throws IOException
     {
-        Object inputBase;
         long inputAddress;
         long inputLimit;
         if (!input.isDirect()) {
             input = ByteBuffer.allocateDirect(input.capacity()).put(input);
         }
 
-        inputBase = null;
         final long tmpInputAddress = getAddress(input);
         inputAddress = tmpInputAddress + input.position();
         inputLimit = tmpInputAddress + input.limit();
 
-        Object outputBase;
         long outputAddress;
         long outputLimit;
         if (!compressed.isDirect()) {
             compressed = ByteBuffer.allocateDirect(compressed.capacity()).put(compressed);
         }
 
-        outputBase = null;
         final long tmpOutputAddress = getAddress(compressed);
         outputAddress = tmpOutputAddress + compressed.position();
         outputLimit = tmpOutputAddress + compressed.limit();

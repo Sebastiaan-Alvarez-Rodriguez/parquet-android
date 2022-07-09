@@ -1,5 +1,6 @@
 buildscript {
     ext {
+        our_group = 'org.sebastiaan.parquet-android'
         our_version = '1.0.0'
         parquet_version = '1.12.3'
         parquet_floor_version = '1.33'
@@ -17,7 +18,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
-group 'org.parquet.android'
+group our_group
 version our_version
 
 static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
