@@ -16,15 +16,11 @@ package org.xerial.snappy.pure;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import static org.xerial.snappy.pure.SnappyConstants.COPY_1_BYTE_OFFSET;
-import static org.xerial.snappy.pure.SnappyConstants.COPY_2_BYTE_OFFSET;
-import static org.xerial.snappy.pure.SnappyConstants.SIZE_OF_INT;
-import static org.xerial.snappy.pure.SnappyConstants.SIZE_OF_LONG;
-import static org.xerial.snappy.pure.SnappyConstants.SIZE_OF_SHORT;
-import static org.xerial.snappy.pure.UnsafeUtil.UNSAFE;
 import static java.lang.Integer.reverseBytes;
 import static java.lang.Long.reverseBytes;
 import static java.lang.Short.reverseBytes;
+import static org.xerial.snappy.pure.SnappyConstants.*;
+import static org.xerial.snappy.pure.UnsafeUtil.UNSAFE;
 
 public final class SnappyRawCompressor
 {

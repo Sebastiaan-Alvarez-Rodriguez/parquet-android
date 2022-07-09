@@ -1,12 +1,9 @@
 package org.sebastiaan.parquet.android;
 
-import org.xerial.snappy.SnappyError;
-import org.xerial.snappy.SnappyErrorCode;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 public class UnsafeProvider {
@@ -26,7 +23,7 @@ public class UnsafeProvider {
             theUnsafe.setAccessible(true);
             UNSAFE = (Unsafe) theUnsafe.get(null);
         } catch (Exception e) {
-            throw new RuntimeException("Unsupported platform: parquet-android could not access sun.misc.Unsafe");
+            throw new RuntimeException("Unsupported platform: parquet-android could not access sun.misc.Unsafe", e);
         }
 
         // Get bytebuffer cleaner method
@@ -59,7 +56,7 @@ public class UnsafeProvider {
                 CLEAN_METHOD.invoke(cleanerObject);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Unsupported platform: parquet-android could not access any known java.nio.DirectByteBuffer cleaning method");
+            throw new RuntimeException("Unsupported platform: parquet-android could not access any known java.nio.DirectByteBuffer cleaning method", e);
         }
     }
     public static void cleanDirectBuffer(ByteBuffer buffer) {
@@ -73,48 +70,5 @@ public class UnsafeProvider {
             }
         } catch (Exception ignored) {}
     }
-}
-
-
-final class UnsafeUtil
-{
-    public static final Unsafe UNSAFE;
-    private static final Field ADDRESS_ACCESSOR;
-
-    private UnsafeUtil()
-    {
-    }
-
-    static {
-
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            UNSAFE = (Unsafe) theUnsafe.get(null);
-        }
-        catch (Exception e) {
-            throw new SnappyError(SnappyErrorCode.UNSUPPORTED_PLATFORM, "pure-java snappy requires access to sun.misc.Unsafe");
-        }
-
-        try {
-            Field field = Buffer.class.getDeclaredField("address");
-            field.setAccessible(true);
-            ADDRESS_ACCESSOR = field;
-        }
-        catch (Exception e) {
-            throw new SnappyError(SnappyErrorCode.UNSUPPORTED_PLATFORM, "pure-java snappy requires access to java.nio.Buffer raw address field");
-        }
-    }
-
-    public static long getAddress(Buffer buffer)
-    {
-        try {
-            return (long) ADDRESS_ACCESSOR.get(buffer);
-        }
-        catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }
 

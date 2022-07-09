@@ -19,12 +19,6 @@ plugins {
 group our_group
 version our_version
 
-configurations {
-    doc {
-        transitive true
-    }
-}
-
 dependencies {
     implementation("org.apache.parquet:parquet-hadoop:$parquet_version") {
         transitive = false
@@ -32,26 +26,6 @@ dependencies {
     implementation("org.apache.parquet:parquet-column:$parquet_version") {
         transitive = false
     }
-
-    doc "org.apache.parquet:parquet-hadoop:$parquet_version"
-    doc "org.apache.parquet:parquet-column:$parquet_version"
-}
-
-
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
-task javadoc(type: Javadoc, overwrite: true) {
-    source configurations.doc.collect { zipTree(it) }
-    source sourceSets.main.allJava
-    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
-    include '**/*.java'
-    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 shadowJar {}
-
-shadowJar.dependsOn(javadocJar)

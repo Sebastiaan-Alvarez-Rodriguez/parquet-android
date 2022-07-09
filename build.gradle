@@ -63,27 +63,68 @@ Did you provide a github token? This is (sadly) required. Please see the docs.
     }
 }
 
+
+configurations {
+    doc {
+        transitive true
+    }
+}
+
 dependencies {
-    api project(path: ':core', configuration: 'shadow')
+    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
+        transitive = false
+    }
+    implementation project(path: ':parquet-merged', configuration: 'shadow')
+//    implementation "org.xerial.snappy:snappy-java:1.1.8.3"
+
     shadow "org.apache.parquet:parquet-common:$parquet_version"
     shadow "org.apache.parquet:parquet-encoding:$parquet_version"
     shadow "org.apache.parquet:parquet-format-structures:$parquet_version"
     shadow "org.apache.parquet:parquet-jackson:$parquet_version"
     shadow "org.apache.yetus:audience-annotations:0.13.0"
     shadow "org.slf4j:slf4j-api:1.7.22"
-//    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
+    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
+
+//    doc "org.apache.parquet:parquet-column:$parquet_version:sources"
+//    doc "org.apache.parquet:parquet-hadoop:$parquet_version:sources"
+//
+//    doc "blue.strategic.parquet:parquet-floor:$parquet_floor_version:sources"
+//
+//    doc "org.apache.parquet:parquet-common:$parquet_version:sources"
+//    doc "org.apache.parquet:parquet-encoding:$parquet_version:sources"
+//    doc "org.apache.parquet:parquet-format-structures:$parquet_version:sources"
+//    doc "org.apache.parquet:parquet-jackson:$parquet_version:sources"
+//    doc "org.apache.yetus:audience-annotations:0.13.0:sources"
+//    doc "org.slf4j:slf4j-api:1.7.22:sources"
+//    doc "org.xerial.snappy:snappy-java:1.1.8.3:sources"
 }
 
 
-//java {
-//    withJavadocJar()
-//    withSourcesJar()
-//}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    failOnError false
+
+    source configurations.doc.collect { zipTree(it) }
+    include '**/*.java'
+    include '**/*.scala'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+}
 
 jar {}
 
 shadowJar {
     archiveClassifier.set('')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs = ['--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED']
 }
 
 publishing {
@@ -101,7 +142,7 @@ publishing {
     publications {
         maven(MavenPublication) { publication ->
             project.shadow.component(publication)
-//            artifacts = [ shadowJar, javadocJar, sourcesJar ]
+            artifacts = [ shadowJar, sourcesJar, javadocJar]
 
             pom {
                 name = "parquet-android"
@@ -133,20 +174,9 @@ publishing {
                 }
             }
 
-            groupId  group
+            groupId group
             artifactId "parquet-android"
             version version
-//            artifact ("/scratch/test/jars/myArtifact.jar")
-
-//            pom.withXml {
-//                def dependencies  = asNode().appendNode("dependencies")
-//                configurations.implementation.allDependencies.each {  dep ->
-//                    def depNode  = dependencies.appendNode("dependency")
-//                    depNode.appendNode("groupId", dep.group)
-//                    depNode.appendNode("artifactId", dep.name)
-//                    depNode.appendNode("version", dep.version)
-//                }
-//            }
         }
     }
 }
