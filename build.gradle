@@ -75,7 +75,7 @@ dependencies {
         transitive = false
     }
     implementation project(path: ':parquet-merged', configuration: 'shadow')
-//    implementation "org.xerial.snappy:snappy-java:1.1.8.3"
+    implementation "org.xerial.snappy:snappy-java:1.1.8.3"
 
     shadow "org.apache.parquet:parquet-common:$parquet_version"
     shadow "org.apache.parquet:parquet-encoding:$parquet_version"
@@ -83,7 +83,7 @@ dependencies {
     shadow "org.apache.parquet:parquet-jackson:$parquet_version"
     shadow "org.apache.yetus:audience-annotations:0.13.0"
     shadow "org.slf4j:slf4j-api:1.7.22"
-    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
+//    shadow "org.xerial.snappy:snappy-java:1.1.8.3"
 
 //    doc "org.apache.parquet:parquet-column:$parquet_version:sources"
 //    doc "org.apache.parquet:parquet-hadoop:$parquet_version:sources"
@@ -121,6 +121,9 @@ jar {}
 
 shadowJar {
     archiveClassifier.set('')
+//    dependencies {
+//        exclude(dependency("org.xerial.snappy:snappy-java:1.1.8.3"))
+//    }
 }
 
 tasks.withType(JavaCompile).configureEach {
