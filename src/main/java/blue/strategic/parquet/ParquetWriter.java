@@ -3,7 +3,6 @@ package blue.strategic.parquet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.hadoop.api.WriteSupport;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.io.DelegatingPositionOutputStream;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.io.PositionOutputStream;
@@ -72,7 +71,7 @@ public class ParquetWriter<T> implements Closeable {
         this.writer = new Builder<T>(outputFile)
                 .withType(schema)
                 .withDehydrator(dehydrator)
-                .withCompressionCodec(codec)
+                .withCompressionCodec(org.apache.parquet.hadoop.metadata.CompressionCodecName.valueOf(codec.name()))
                 .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
                 .build();
     }

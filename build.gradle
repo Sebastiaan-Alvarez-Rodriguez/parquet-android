@@ -21,20 +21,6 @@ plugins {
 group our_group
 version our_version
 
-static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
-    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
-}
-
-def addPropertyOrEnv(String propertyKey, String envKey) {
-    File propertiesFile = project.rootProject.file('local.properties')
-    if (propertiesFile.isFile()) {
-        Properties properties = new Properties()
-        properties.load(propertiesFile.newDataInputStream())
-        return addPropertyOrEnv(properties, propertyKey, envKey)
-    }
-    return null
-}
-
 allprojects {
     repositories {
         mavenCentral()
@@ -165,4 +151,18 @@ publishing {
             version version
         }
     }
+}
+
+static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
+    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
+}
+
+def addPropertyOrEnv(String propertyKey, String envKey) {
+    File propertiesFile = project.rootProject.file('local.properties')
+    if (propertiesFile.isFile()) {
+        Properties properties = new Properties()
+        properties.load(propertiesFile.newDataInputStream())
+        return addPropertyOrEnv(properties, propertyKey, envKey)
+    }
+    return null
 }
