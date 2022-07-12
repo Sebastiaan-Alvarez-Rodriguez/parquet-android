@@ -51,9 +51,8 @@ Did you provide a github token? This is (sadly) required. Please see the docs.
 
 
 configurations {
-    doc {
-        transitive true
-    }
+    doc.extendsFrom(shadow)
+    testImplementation.extendsFrom(shadow)
 }
 
 dependencies {
@@ -63,6 +62,9 @@ dependencies {
     implementation project(path: ':parquet-merged', configuration: 'shadow')
     implementation "org.xerial.snappy:snappy-java:1.1.8.3"
 
+    testImplementation(platform('org.junit:junit-bom:5.8.2'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+
     shadow "org.apache.parquet:parquet-common:$parquet_version"
     shadow "org.apache.parquet:parquet-encoding:$parquet_version"
     shadow "org.apache.parquet:parquet-format-structures:$parquet_version"
@@ -71,7 +73,12 @@ dependencies {
     shadow "org.slf4j:slf4j-api:1.7.22"
 }
 
-
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
 
 java {
     withJavadocJar()
