@@ -1,4 +1,3 @@
 rootProject.name = 'parquet-android'
-include 'core'
 include 'parquet-merged'
 
