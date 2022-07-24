@@ -1,3 +1,16 @@
-rootProject.name = 'parquet-android'
-include 'parquet-merged'
+import org.gradle.api.initialization.resolve.RepositoriesMode
 
+rootProject.name = 'parquet-android'
+include ':parquet-android'
+include ':parquet-android:parquet-merged'
+include ':parquet-android:utils'
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    // Projects are responsible for dependencies
+    // If a project does not specify anything, use below sensible defaults.
+    repositories {
+        google()
+        mavenCentral()
+    }
+}

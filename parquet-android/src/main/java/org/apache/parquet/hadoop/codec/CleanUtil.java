@@ -1,6 +1,7 @@
 package org.apache.parquet.hadoop.codec;
 
-import org.sebastiaan.parquet.android.UnsafeProvider;
+
+import org.sebastiaan.utils.UnsafeProvider;
 
 import java.nio.ByteBuffer;
 

@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation "org.slf4j:slf4j-api:1.7.22"
+}
+
+java {
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
+}

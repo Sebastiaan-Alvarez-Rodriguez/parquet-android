@@ -4,18 +4,19 @@ buildscript {
         our_version = '1.0.0'
         parquet_version = '1.12.3'
         parquet_floor_version = '1.33'
+
+        android_java_version_src = JavaVersion.VERSION_11
+        android_java_version_target = JavaVersion.VERSION_11
     }
 
     repositories {
+        google()
         mavenCentral()
-        gradlePluginPortal()
     }
-}
 
-plugins {
-    id 'java-library'
-    id 'maven-publish'
-    id "com.github.johnrengelman.shadow" version "7.1.2"
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.2.1'
+    }
 }
 
 group our_group
@@ -59,119 +60,10 @@ Did you provide a github token? This is (sadly) required. Please see the docs.
             }
         }
         mavenCentral()
+        google()
     }
 }
 
-
-configurations {
-    doc.extendsFrom(shadow)
-    testImplementation.extendsFrom(shadow)
-}
-
-dependencies {
-    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
-        transitive = false
-    }
-    implementation project(path: ':parquet-merged', configuration: 'shadow')
-    api("org.xerial.snappy:snappy-java:1.1.8.5")
-    //api("org.sebastiaan.parquet-android:parquet-android:1.0.0")
-
-    testImplementation(platform('org.junit:junit-bom:5.8.2'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-
-    shadow "org.apache.parquet:parquet-common:$parquet_version"
-    shadow "org.apache.parquet:parquet-encoding:$parquet_version"
-    shadow "org.apache.parquet:parquet-format-structures:$parquet_version"
-    shadow "org.apache.parquet:parquet-jackson:$parquet_version"
-    shadow "org.apache.yetus:audience-annotations:0.13.0"
-    shadow "org.slf4j:slf4j-api:1.7.22"
-}
-
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
-javadoc {
-    failOnError false
-
-    source configurations.doc.collect { zipTree(it) }
-    include '**/*.java'
-    include '**/*.scala'
-    options.addStringOption('Xdoclint:none', '-quiet')
-    options.addStringOption('encoding', 'UTF-8')
-    options.addStringOption('charSet', 'UTF-8')
-}
-
-jar {}
-
-shadowJar {
-    archiveClassifier.set('')
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs = ['--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED']
-}
-
-publishing {
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android")
-            credentials {
-                username = addPropertyOrEnv("gpr.user", "USERNAME")
-                password = addPropertyOrEnv("gpr.token", "TOKEN")
-            }
-        }
-    }
-    publications {
-        maven(MavenPublication) { publication ->
-            project.shadow.component(publication)
-            artifacts = [ shadowJar, sourcesJar, javadocJar]
-
-            pom {
-                name = "parquet-android"
-                description = "Read and write parquet files on Android with ease."
-                url = "https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android"
-
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android/blob/master/LICENSE'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'sebastiaan-alvarez-rodriguez'
-                        name = 'Sebastiaan Alvarez Rodriguez'
-                        email = ''
-                    }
-                }
-            }
-
-            pom.withXml {
-                var pomNode = asNode()
-                pomNode.dependencies.'*'.findAll() {
-                    it.artifactId.text() == 'parquet-merged'
-                }.each() {
-                    it.parent().remove(it)
-                }
-            }
-
-            groupId group
-            artifactId "parquet-android"
-            version version
-        }
-    }
-}
 
 static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
     return properties.getProperty(propertyKey) ?: System.getenv(envKey)

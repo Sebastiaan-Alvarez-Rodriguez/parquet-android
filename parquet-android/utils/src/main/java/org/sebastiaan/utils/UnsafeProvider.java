@@ -1,12 +1,13 @@
-package org.sebastiaan.parquet.android;
+package org.sebastiaan.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+
+import sun.misc.Unsafe;
 
 public class UnsafeProvider {
     public static final Unsafe UNSAFE;
