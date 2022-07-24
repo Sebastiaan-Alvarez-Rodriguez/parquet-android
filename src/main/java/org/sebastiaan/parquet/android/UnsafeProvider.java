@@ -1,6 +1,7 @@
 package org.sebastiaan.parquet.android;
 
-import org.apache.parquet.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -33,6 +34,8 @@ public class UnsafeProvider {
     private UnsafeProvider(){}
 
     static {
+        Logger logger = LoggerFactory.getLogger("org.sebastiaan.parquet.android");
+
         Unsafe localUnsafeSoStupidJavaUnderstands;
         boolean gotUnsafe = false;
         try {
@@ -42,12 +45,12 @@ public class UnsafeProvider {
             gotUnsafe = true;
         } catch (Exception e) {
             localUnsafeSoStupidJavaUnderstands = null;
-            new Log(UnsafeProvider.class).warn("parquet-android - UnsafeProvider - static initializer: Could not find Unsafe access. Leaks might occur.");
+            logger.warn("parquet-android - UnsafeProvider - static initializer: Could not find Unsafe access. Leaks might occur.", e);
         }
 
         UNSAFE = localUnsafeSoStupidJavaUnderstands;
         if (!gotUnsafe || (!getUnsafeInvokeCleaner() && !getDirectByteBufferCleanerClean() && !getDirectByteBufferFree() && !getDirectByteBufferMemoryRefFree())) {
-            new Log(UnsafeProvider.class).warn("parquet-android - UnsafeProvider - static initializer: Could not find a suitable bytebuffer cleaner. Leaks might occur.");
+            logger.warn("parquet-android - UnsafeProvider - static initializer: Could not find a suitable bytebuffer cleaner. Leaks might occur.");
             cleanBufferMethod = failed;
         }
     }
@@ -69,7 +72,7 @@ public class UnsafeProvider {
                 case byteBufferMemoryRefFree: CLEAN_METHOD.invoke(PRECLEAN_FIELD.get(buffer)); return;
             }
         } catch (Exception e) {
-            throw new RuntimeException("parquet-android - could not call direct buffer clean code");
+            throw new RuntimeException("parquet-android - could not call direct buffer clean code (using method "+cleanBufferMethod+")", e);
         }
     }
 
@@ -82,7 +85,7 @@ public class UnsafeProvider {
                 PRECLEAN_FIELD = null;
             }
             cleanBufferMethod = invokeCleaner;
-            return true;
+            return CLEAN_METHOD != null;
         } catch (Exception e) {
             return false;
         }
@@ -100,7 +103,7 @@ public class UnsafeProvider {
                 CLEAN_METHOD.invoke(cleanerObject);
             }
             cleanBufferMethod = byteBufferCleanerClean;
-            return true;
+            return PRECLEAN_METHOD != null && CLEAN_METHOD != null;
         } catch (Exception e) {
             return false;
         }
@@ -113,7 +116,7 @@ public class UnsafeProvider {
             CLEAN_METHOD.setAccessible(true);
             CLEAN_METHOD.invoke(tmpBuffer);
             cleanBufferMethod = byteBufferFree;
-            return true;
+            return CLEAN_METHOD != null;
         } catch (Exception e) {
             return false;
         }
@@ -128,7 +131,7 @@ public class UnsafeProvider {
             CLEAN_METHOD = PRECLEAN_FIELD.getClass().getDeclaredMethod("free");
             PRECLEAN_METHOD = null;
             cleanBufferMethod = byteBufferMemoryRefFree;
-            return true;
+            return PRECLEAN_FIELD != null && CLEAN_METHOD != null;
         } catch (Exception e) {
             return false;
         }

@@ -1,14 +1,14 @@
 package org.xerial.snappy.pure;
 
-import org.xerial.snappy.SnappyApi;
+import static org.xerial.snappy.pure.UnsafeUtil.getAddress;
+import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import static org.xerial.snappy.pure.UnsafeUtil.getAddress;
-import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
+import org.xerial.snappy.SnappyApi;
 
 /**
  * A pure-java Snappy implementation using https://github.com/airlift/aircompressor

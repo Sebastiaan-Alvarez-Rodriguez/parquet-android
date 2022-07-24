@@ -23,7 +23,19 @@ version our_version
 
 allprojects {
     repositories {
-        mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/Sebastiaan-Alvarez-Rodriguez/snappy-java"
+            credentials {
+                username = addPropertyOrEnv("gpr.user", "USERNAME")
+                password = addPropertyOrEnv("gpr.token", "TOKEN")
+                if (username == null || password == null)
+                    throw RuntimeException("""
+username="$username", token="$password"
+Did you provide a github token? This is (sadly) required. Please see the docs.
+""")
+            }
+        }
         maven {
             name = "GitHubPackages"
             url = "https://maven.pkg.github.com/strategicblue/parquet-floor"
@@ -46,6 +58,7 @@ Did you provide a github token? This is (sadly) required. Please see the docs.
                 // Once Github fixes this needless token access for public repo packages, we will remove this.
             }
         }
+        mavenCentral()
     }
 }
 
@@ -60,7 +73,8 @@ dependencies {
         transitive = false
     }
     implementation project(path: ':parquet-merged', configuration: 'shadow')
-    implementation "org.xerial.snappy:snappy-java:1.1.8.3"
+    api("org.xerial.snappy:snappy-java:1.1.8.5")
+    //api("org.sebastiaan.parquet-android:parquet-android:1.0.0")
 
     testImplementation(platform('org.junit:junit-bom:5.8.2'))
     testImplementation('org.junit.jupiter:junit-jupiter')
@@ -108,7 +122,6 @@ tasks.withType(JavaCompile).configureEach {
 
 publishing {
     repositories {
-
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android")
