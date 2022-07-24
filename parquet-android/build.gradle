@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'maven-publish'
+    id 'com.kezong.fat-aar'
     id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
@@ -64,14 +65,14 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
 
-//        ndk {
-//            abiFilters 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a', 'android-arm'
-//        }
+        ndk {
+            abiFilters 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a', 'android-arm'
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false // very important, otherwise all source code is removed (obviously)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -86,20 +87,24 @@ android {
     }
 
     publishing {
-        singleVariant('release') {
+        singleVariant("release") {
             withSourcesJar()
             withJavadocJar()
         }
     }
 }
 
+configurations {
+    implementation.extendsFrom embed
+}
 dependencies {
     api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
         transitive = false
     }
-    implementation project(path: ':parquet-android:utils')
-    implementation project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
-    api("org.xerial.snappy:snappy-java:1.1.8.5")
+    embed project(path: ':parquet-android:utils')
+
+    embed project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
+    embed("org.xerial.snappy:snappy-java:1.1.8.5")
 
     testImplementation(platform('org.junit:junit-bom:5.8.2'))
     testImplementation('org.junit.jupiter:junit-jupiter')
@@ -110,6 +115,16 @@ dependencies {
     implementation "org.apache.parquet:parquet-jackson:$parquet_version"
     implementation "org.apache.yetus:audience-annotations:0.13.0"
     implementation "org.slf4j:slf4j-api:1.7.22"
+}
+
+fataar {
+    /**
+     * If transitive is true, local jar module and remote library's dependencies will be embed. (local aar module does not support)
+     * If transitive is false, just embed first level dependency
+     * Default value is false
+     * @since 1.3.0
+     */
+    transitive = true
 }
 
 //test {
@@ -159,10 +174,13 @@ afterEvaluate {
         publications {
             release(MavenPublication) { publication ->
                 from components.release
-                from project.shadow.component(publication)
 //                https://stackoverflow.com/questions/26874498
                 //            project.shadow.component(publication)
                 //            artifacts = [ shadowJar, sourcesJar, javadocJar]
+
+                groupId group
+                artifactId "parquet-android"
+                version version
 
                 pom {
                     name = "parquet-android"
@@ -188,15 +206,11 @@ afterEvaluate {
                 pom.withXml {
                     var pomNode = asNode()
                     pomNode.dependencies.'*'.findAll() {
-                        it.artifactId.text() == 'parquet-merged'
+                        it.groupId.text().contains(rootProject.name)
                     }.each() {
                         it.parent().remove(it)
                     }
                 }
-
-                groupId group
-                artifactId "parquet-android"
-                version version
             }
         }
     }
