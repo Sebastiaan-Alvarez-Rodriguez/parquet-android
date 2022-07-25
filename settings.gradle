@@ -2,6 +2,7 @@ import org.gradle.api.initialization.resolve.RepositoriesMode
 
 rootProject.name = 'parquet-android'
 include ':parquet-android'
+include ':parquet-android:parquet-floor-android'
 include ':parquet-android:parquet-merged'
 include ':parquet-android:utils'
 

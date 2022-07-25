@@ -1,8 +1,14 @@
+/**
+ * Goal of this module: Take all modified libraries, and ship them as a AAR.
+ * We cannot ship as a JAR, because snappy-java has shared objects (.so) files,
+ * and those are not shipped over correctly in Android projects depending on the JAR.
+ * For silly reasons, it works fine if we present the same projects an AAR.
+ */
+
 plugins {
     id 'com.android.library'
     id 'maven-publish'
     id 'com.kezong.fat-aar'
-    id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 group our_group
@@ -50,11 +56,6 @@ Did you provide a github token? This is (sadly) required. Please see the docs.
 }
 
 
-configurations {
-    doc.extendsFrom(shadow)
-    testImplementation.extendsFrom(shadow)
-}
-
 android {
     compileSdk 32
 
@@ -95,20 +96,18 @@ android {
 }
 
 configurations {
-    implementation.extendsFrom embed
+//    implementation.extendsFrom embed
+//    testImplementation.extendsFrom embed
 }
-dependencies {
-    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
-        transitive = false
-    }
-    embed project(path: ':parquet-android:utils')
 
-    embed project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
+dependencies {
+    embed project(path: ':parquet-android:parquet-floor-android')//, configuration: 'shadow')
     embed("org.xerial.snappy:snappy-java:1.1.8.5")
 
     testImplementation(platform('org.junit:junit-bom:5.8.2'))
     testImplementation('org.junit.jupiter:junit-jupiter')
 
+    // We need to depend on these things in parquet
     implementation "org.apache.parquet:parquet-common:$parquet_version"
     implementation "org.apache.parquet:parquet-encoding:$parquet_version"
     implementation "org.apache.parquet:parquet-format-structures:$parquet_version"
@@ -216,10 +215,6 @@ afterEvaluate {
     }
 }
 
-static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
-    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
-}
-
 def addPropertyOrEnv(String propertyKey, String envKey) {
     File propertiesFile = project.rootProject.file('local.properties')
     if (propertiesFile.isFile()) {
@@ -228,4 +223,8 @@ def addPropertyOrEnv(String propertyKey, String envKey) {
         return addPropertyOrEnv(properties, propertyKey, envKey)
     }
     return null
+}
+
+static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
+    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
 }

@@ -1,0 +1,62 @@
+/**
+ * Goal of this module: Override a few classes from parquet-floor
+ * to improve its capabilities.
+ * We need to merge our overrides with the base library.
+ * After merging, we have 1 jar with no duplicate files inside.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'java-library'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+group our_group
+version our_version
+
+configurations {
+    doc.extendsFrom(shadow)
+    testImplementation.extendsFrom(shadow)
+}
+
+dependencies {
+    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
+        transitive = false
+    }
+    implementation project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
+
+    shadow "org.apache.parquet:parquet-common:$parquet_version"
+    shadow "org.apache.parquet:parquet-encoding:$parquet_version"
+    shadow "org.apache.parquet:parquet-format-structures:$parquet_version"
+    shadow "org.apache.parquet:parquet-jackson:$parquet_version"
+    shadow "org.apache.yetus:audience-annotations:0.13.0"
+    shadow "org.slf4j:slf4j-api:1.7.22"
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    failOnError false
+
+    source configurations.doc.collect { zipTree(it) }
+    include '**/*.java'
+    include '**/*.scala'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+}
+
+jar {}
+
+shadowJar {
+    archiveClassifier.set('')
+}

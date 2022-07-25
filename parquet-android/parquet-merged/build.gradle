@@ -26,6 +26,7 @@ dependencies {
     implementation("org.apache.parquet:parquet-column:$parquet_version") {
         transitive = false
     }
+    implementation project(path: ':parquet-android:utils')
 }
 
 shadowJar {}

@@ -1,3 +1,5 @@
+/** Goal of this module: Maintain simple utilities. */
+
 plugins {
     id 'java-library'
 }

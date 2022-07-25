@@ -1,7 +1,7 @@
 buildscript {
     ext {
         our_group = 'org.sebastiaan.parquet-android'
-        our_version = '1.0.0'
+        our_version = '1.0.1'
         parquet_version = '1.12.3'
         parquet_floor_version = '1.33'
 
