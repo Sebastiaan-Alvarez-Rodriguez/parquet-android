@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation "org.slf4j:slf4j-api:1.7.22"
+    compileOnly "org.slf4j:slf4j-api:$parquet_slf4j_version"
 }
 
 java {

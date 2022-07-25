@@ -70,8 +70,8 @@ dependencies {
     implementation "org.apache.parquet:parquet-encoding:$parquet_version"
     implementation "org.apache.parquet:parquet-format-structures:$parquet_version"
     implementation "org.apache.parquet:parquet-jackson:$parquet_version"
-    implementation "org.apache.yetus:audience-annotations:0.13.0"
-    implementation "org.slf4j:slf4j-api:1.7.22"
+    implementation "org.apache.yetus:audience-annotations:$parquet_yetus_version"
+    implementation "org.slf4j:slf4j-api:$parquet_slf4j_version"
 }
 
 fataar {

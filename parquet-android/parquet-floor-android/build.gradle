@@ -35,8 +35,8 @@ dependencies {
     compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
     compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
     compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
-    compileOnly "org.apache.yetus:audience-annotations:0.13.0"
-    compileOnly "org.slf4j:slf4j-api:1.7.22"
+    compileOnly "org.apache.yetus:audience-annotations:$parquet_yetus_version"
+    compileOnly "org.slf4j:slf4j-api:$parquet_slf4j_version"
 }
 
 java {
