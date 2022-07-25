@@ -26,17 +26,7 @@ configurations {
 }
 
 dependencies {
-    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
-        transitive = false
-    }
-    implementation project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
-
-    compileOnly "org.apache.parquet:parquet-common:$parquet_version"
-    compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
-    compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
-    compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
-    compileOnly "org.apache.yetus:audience-annotations:0.13.0"
-    compileOnly "org.slf4j:slf4j-api:1.7.22"
+    implementation project(path: ':parquet-android:parquet-floor-android', configuration: 'shadow')
 }
 
 java {
