@@ -4,13 +4,6 @@
  * After merging, we have 1 jar with no duplicate files inside.
  */
 
-buildscript {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
 plugins {
     id 'java-library'
     id "com.github.johnrengelman.shadow" version "7.1.2"
@@ -30,3 +23,8 @@ dependencies {
 }
 
 shadowJar {}
+
+java {
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
+}
