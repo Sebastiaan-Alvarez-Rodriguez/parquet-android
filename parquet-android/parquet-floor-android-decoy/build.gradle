@@ -50,3 +50,7 @@ jar {}
 shadowJar {
     archiveClassifier.set('')
 }
+java {
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
+}

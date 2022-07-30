@@ -1,8 +1,7 @@
 /**
  * Goal of this module: Take all modified libraries, and ship them as a AAR.
- * We cannot ship as a JAR, because snappy-java has shared objects (.so) files,
- * and those are not shipped over correctly in Android projects depending on the JAR.
- * For silly reasons, it works fine if we present the same projects an AAR.
+ * We cannot ship as a JAR, because snappy-android has shared objects (.so) files,
+ * and those must be shipped over using AARs.
  */
 
 plugins {
@@ -23,10 +22,6 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
-
-        ndk {
-            abiFilters 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a', 'android-arm'
-        }
     }
 
     buildTypes {
@@ -53,14 +48,9 @@ android {
     }
 }
 
-configurations {
-//    implementation.extendsFrom embed
-//    testImplementation.extendsFrom embed
-}
-
 dependencies {
     embed project(path: ':parquet-android:parquet-floor-android-decoy')
-    embed("org.xerial.snappy:snappy-java:1.1.8.5")
+    embed("org.sebastiaan.snappy-android:snappy-android:0.1.0")
 
     testImplementation(platform('org.junit:junit-bom:5.8.2'))
     testImplementation('org.junit.jupiter:junit-jupiter')
@@ -83,35 +73,6 @@ fataar {
      */
     transitive = true
 }
-
-//test {
-//    useJUnitPlatform()
-//    testLogging {
-//        events "passed", "skipped", "failed"
-//    }
-//}
-
-//java {
-//    withJavadocJar()
-//    withSourcesJar()
-//}
-
-//javadoc {
-//    failOnError false
-//
-//    source configurations.doc.collect { zipTree(it) }
-//    include '**/*.java'
-//    include '**/*.scala'
-//    options.addStringOption('Xdoclint:none', '-quiet')
-//    options.addStringOption('encoding', 'UTF-8')
-//    options.addStringOption('charSet', 'UTF-8')
-//}
-
-//jar {}
-
-//shadowJar {
-//    archiveClassifier.set('')
-//}
 
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs = ['--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED']
