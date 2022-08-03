@@ -19,7 +19,7 @@ configurations {
 }
 
 dependencies {
-    api("blue.strategic.parquet:parquet-floor:$parquet_floor_version") {
+    api("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
         transitive = false
     }
     implementation project(path: ':parquet-android:parquet-merged', configuration: 'shadow')

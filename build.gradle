@@ -5,7 +5,7 @@ buildscript {
         parquet_version = '1.12.3'
         parquet_yetus_version = '0.13.0'
         parquet_slf4j_version = '1.7.22'
-        parquet_floor_version = '1.33'
+        parquet_floor_version = '168f7846e0' // short commit hash for version 1.33
 
         android_java_version_src = JavaVersion.VERSION_11
         android_java_version_target = JavaVersion.VERSION_11
@@ -28,44 +28,7 @@ version our_version
 allprojects {
     repositories {
         maven { url "https://jitpack.io" }
-        maven {
-            name = "GitHubPackages"
-            url = "https://maven.pkg.github.com/strategicblue/parquet-floor"
-            credentials {
-                username = addPropertyOrEnv("gpr.user", "USERNAME")
-                password = addPropertyOrEnv("gpr.token", "TOKEN")
-
-                if (username == null || password == null)
-                    throw RuntimeException("""
-username="$username", token="$password"
-Did you provide a github token? This is (sadly) required. Please see the docs.
-""")
-                // Github presents packages using a maven interface.
-                // Sadly, they force us to provide a stupid token to download a package from this interface,
-                // even when repo is publicly available.
-                // The token requires only the read:package permission.
-                // NEVER publish tokens online.
-                // Always place these tokens in environment variables (which are not accidentally pushed),
-                // or in files that are explicitly not published (e.g. /local.properties).
-                // Once Github fixes this needless token access for public repo packages, we will remove this.
-            }
-        }
         mavenCentral()
         google()
     }
-}
-
-
-static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
-    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
-}
-
-def addPropertyOrEnv(String propertyKey, String envKey) {
-    File propertiesFile = project.rootProject.file('local.properties')
-    if (propertiesFile.isFile()) {
-        Properties properties = new Properties()
-        properties.load(propertiesFile.newDataInputStream())
-        return addPropertyOrEnv(properties, propertyKey, envKey)
-    }
-    return null
 }

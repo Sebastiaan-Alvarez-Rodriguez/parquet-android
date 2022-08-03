@@ -50,7 +50,7 @@ android {
 
 dependencies {
     embed project(path: ':parquet-android:parquet-floor-android-decoy')
-    embed("org.sebastiaan.snappy-android:snappy-android:0.1.0")
+    embed("com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9")
 
     testImplementation(platform('org.junit:junit-bom:5.8.2'))
     testImplementation('org.junit.jupiter:junit-jupiter')
@@ -79,22 +79,9 @@ tasks.withType(JavaCompile).configureEach {
 }
 afterEvaluate {
     publishing {
-        repositories {
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android")
-                credentials {
-                    username = addPropertyOrEnv("gpr.user", "USERNAME")
-                    password = addPropertyOrEnv("gpr.token", "TOKEN")
-                }
-            }
-        }
         publications {
             release(MavenPublication) { publication ->
                 from components.release
-//                https://stackoverflow.com/questions/26874498
-                //            project.shadow.component(publication)
-                //            artifacts = [ shadowJar, sourcesJar, javadocJar]
 
                 groupId group
                 artifactId "parquet-android"
@@ -132,18 +119,4 @@ afterEvaluate {
             }
         }
     }
-}
-
-def addPropertyOrEnv(String propertyKey, String envKey) {
-    File propertiesFile = project.rootProject.file('local.properties')
-    if (propertiesFile.isFile()) {
-        Properties properties = new Properties()
-        properties.load(propertiesFile.newDataInputStream())
-        return addPropertyOrEnv(properties, propertyKey, envKey)
-    }
-    return null
-}
-
-static def addPropertyOrEnv(Properties properties, String propertyKey, String envKey) {
-    return properties.getProperty(propertyKey) ?: System.getenv(envKey)
 }
