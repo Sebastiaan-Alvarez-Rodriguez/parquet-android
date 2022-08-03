@@ -1,8 +1,7 @@
 /**
- * Goal of this module: Override a few classes from parquet-floor
+ * Goal of this module: Override a few classes from parquet-floor, and parquet,
  * to improve its capabilities.
- * We need to merge our overrides with the base library.
- * After merging, we have 1 jar with no duplicate files inside.
+ * Fat-jar has no duplicate files inside.
  */
 
 plugins {
@@ -22,7 +21,13 @@ dependencies {
     api("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
         transitive = false
     }
-    implementation project(path: ':parquet-android:parquet-merged', configuration: 'shadow')
+
+    implementation("org.apache.parquet:parquet-hadoop:$parquet_version") {
+        transitive = false
+    }
+    implementation("org.apache.parquet:parquet-column:$parquet_version") {
+        transitive = false
+    }
 
     compileOnly "org.apache.parquet:parquet-common:$parquet_version"
     compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
@@ -35,6 +40,9 @@ dependencies {
 java {
     withJavadocJar()
     withSourcesJar()
+
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
 }
 
 javadoc {
@@ -52,9 +60,4 @@ jar {}
 
 shadowJar {
     archiveClassifier.set('')
-}
-
-java {
-    sourceCompatibility = android_java_version_src
-    targetCompatibility = android_java_version_target
 }

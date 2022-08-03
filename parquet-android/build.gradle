@@ -52,9 +52,6 @@ dependencies {
     embed project(path: ':parquet-android:parquet-floor-android-decoy')
     embed("com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9")
 
-    testImplementation(platform('org.junit:junit-bom:5.8.2'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-
     // We need to depend on these things in parquet
     implementation "org.apache.parquet:parquet-common:$parquet_version"
     implementation "org.apache.parquet:parquet-encoding:$parquet_version"
@@ -62,6 +59,9 @@ dependencies {
     implementation "org.apache.parquet:parquet-jackson:$parquet_version"
     implementation "org.apache.yetus:audience-annotations:$parquet_yetus_version"
     implementation "org.slf4j:slf4j-api:$parquet_slf4j_version"
+
+    testImplementation(platform('org.junit:junit-bom:5.8.2'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
 }
 
 fataar {

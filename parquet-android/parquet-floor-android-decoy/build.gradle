@@ -1,9 +1,4 @@
-/**
- * Goal of this module: Override a few classes from parquet-floor
- * to improve its capabilities.
- * We need to merge our overrides with the base library.
- * After merging, we have 1 jar with no duplicate files inside.
- */
+/** Goal of this module: Ensure parent fat-aar compatibility with below fat-jar */
 
 plugins {
     id 'java-library'
@@ -25,6 +20,9 @@ dependencies {
 java {
     withJavadocJar()
     withSourcesJar()
+
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
 }
 
 javadoc {
@@ -42,8 +40,4 @@ jar {}
 
 shadowJar {
     archiveClassifier.set('')
-}
-java {
-    sourceCompatibility = android_java_version_src
-    targetCompatibility = android_java_version_target
 }
