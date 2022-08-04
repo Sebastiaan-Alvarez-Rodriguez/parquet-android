@@ -6,13 +6,55 @@ This project satisfies 2 goals:
 
 Current package is under 3MB.
 
+## Versioning
+Parquet-android versioning scheme follows the versions of the parquet library.
+E.g. Snappy-android `1.12.3` provides snappy library version `1.12.3`.  
+Our Java bindings are compiled for Java 11.  
+Our Android bindings are compiled for `minSdk=29, targetSdk=32, compileSdk=32`.
+
+
 ## Depending on this project
+We publish [releases](https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android/releases).
+on jitpack.
 
-### Prerequisites
- 1. A GitHub Personal Access Token (PAT) with `read:package` permission.
- 2. `openjdk-11` (other java 11 distributions might be supported too)
+In your project root `build.gradle`:
+```groovy
+allprojects {
+    repositories {
+        // Other repositories...
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
 
-## Usage
+In your module `build.gradle`:
+```groovy
+dependencies {
+    implementation 'com.github.Sebastiaan-Alvarez-Rodriguez:parquet-android:1.12.3'
+}
+```
+
+## Using this project
+See [example] for reading and writing parquet files.
+
+
+## FAQ
+Q: Can I use this project for non-Android (e.g. normal Java, iOS) projects?  
+A: No, this project produces an Android Archive (AAR) binary, which only works for android.
+
+Q: Why do you produce an AAR instead of a Java Archive (JAR) binary?  
+A: TL;DR We are shipping native libraries so we must do that.
+The building process for Android PacKages (APK) and Android Bundles
+requires that native libraries are present in AAR files in `/jni/<ABI>/libmylibrary.so`.
+If we pass an AAR with stuff in `/jni/<ABI>/`, the build process copies the shared libraries
+to `/jni/<ABI>/` of the output  APK/Bundle.
+The Android system can then load these libraries at runtime using `System.loadLibrary("mylibrary")`.  
+If we present a JAR file to the build process instead, with `/jni/<ABI>/libmylibrary.so` inside the JAR,
+it places the entire JAR file in `/libs/myjar.jar`.
+The Android system cannot find the libraries at `/jni/<ABI>`, and native libraries are not loaded.
+So, we need an AAR.
+For more info about the workings of AARs, see [here](https://developer.android.com/studio/projects/android-library.html#aar-contents).
+
 
 ## Thanks
 Many thanks to the developers of [parquet-floor](https://github.com/strategicblue/parquet-floor):  

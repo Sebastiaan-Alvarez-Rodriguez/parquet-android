@@ -1,7 +1,7 @@
 buildscript {
     ext {
         our_group = 'org.sebastiaan.parquet-android'
-        our_version = '1.0.4'
+        our_version = '1.12.3'
         parquet_version = '1.12.3'
         parquet_yetus_version = '0.13.0'
         parquet_slf4j_version = '1.7.22'

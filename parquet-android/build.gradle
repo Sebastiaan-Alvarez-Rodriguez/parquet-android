@@ -59,21 +59,6 @@ dependencies {
     implementation "org.apache.parquet:parquet-jackson:$parquet_version"
     implementation "org.apache.yetus:audience-annotations:$parquet_yetus_version"
     implementation "org.slf4j:slf4j-api:$parquet_slf4j_version"
-
-    testImplementation(platform('org.junit:junit-bom:5.8.2'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-
-    // Dependencies copied from parquet-floor-android
-    testImplementation project(path: ':parquet-android:parquet-floor-android')
-    testImplementation("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
-        transitive = false
-    }
-    testImplementation("org.apache.parquet:parquet-hadoop:$parquet_version") {
-        transitive = false
-    }
-    testImplementation("org.apache.parquet:parquet-column:$parquet_version") {
-        transitive = false
-    }
 }
 
 fataar {
