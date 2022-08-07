@@ -4,6 +4,7 @@ rootProject.name = 'parquet-android'
 include ':parquet-android'
 include ':parquet-android:parquet-floor-android'
 include ':parquet-android:parquet-floor-android-decoy'
+include ':testutils'
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)

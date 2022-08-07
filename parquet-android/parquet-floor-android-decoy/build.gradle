@@ -14,7 +14,7 @@ configurations {
 }
 
 dependencies {
-    implementation project(path: ':parquet-android:parquet-floor-android', configuration: 'shadow')
+    api project(path: ':parquet-android:parquet-floor-android', configuration: 'shadow')
 }
 
 java {

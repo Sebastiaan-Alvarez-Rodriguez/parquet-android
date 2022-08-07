@@ -1,4 +1,4 @@
-package org.sebastiaan.parquet.android;
+package org.sebastiaan.testutils;
 
 import org.junit.jupiter.api.Assertions;
 

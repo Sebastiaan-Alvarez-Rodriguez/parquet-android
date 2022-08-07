@@ -14,7 +14,6 @@ version our_version
 
 configurations {
     doc.extendsFrom(shadow)
-    testImplementation.extendsFrom(shadow)
 }
 
 dependencies {
@@ -22,22 +21,12 @@ dependencies {
         transitive = false
     }
 
-    implementation("org.apache.parquet:parquet-hadoop:$parquet_version") {
+    api("org.apache.parquet:parquet-hadoop:$parquet_version") {
         transitive = false
     }
-    implementation("org.apache.parquet:parquet-column:$parquet_version") {
+    api("org.apache.parquet:parquet-column:$parquet_version") {
         transitive = false
     }
-
-    testImplementation(platform('org.junit:junit-bom:5.8.2'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-
-    testImplementation "org.apache.parquet:parquet-common:$parquet_version"
-    testImplementation "org.apache.parquet:parquet-encoding:$parquet_version"
-    testImplementation "org.apache.parquet:parquet-format-structures:$parquet_version"
-    testImplementation "org.apache.parquet:parquet-jackson:$parquet_version"
-    testImplementation "org.apache.yetus:audience-annotations:$parquet_yetus_version"
-    testImplementation "org.slf4j:slf4j-api:$parquet_slf4j_version"
 
     compileOnly "org.apache.parquet:parquet-common:$parquet_version"
     compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
@@ -55,10 +44,6 @@ java {
     targetCompatibility = android_java_version_target
 }
 
-test {
-    useJUnitPlatform()
-}
-
 javadoc {
     failOnError false
 
@@ -72,6 +57,4 @@ javadoc {
 
 jar {}
 
-shadowJar {
-    archiveClassifier.set('')
-}
+shadowJar {}

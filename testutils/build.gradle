@@ -1,0 +1,23 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+
+    compileOnly(platform('org.junit:junit-bom:5.8.2'))
+    compileOnly('org.junit.jupiter:junit-jupiter')
+
+    implementation project(path: ':parquet-android:parquet-floor-android-decoy')
+
+    compileOnly "org.apache.parquet:parquet-common:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
+    compileOnly "org.apache.yetus:audience-annotations:$parquet_yetus_version"
+    compileOnly "org.slf4j:slf4j-api:$parquet_slf4j_version"
+}
+
+java {
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
+}

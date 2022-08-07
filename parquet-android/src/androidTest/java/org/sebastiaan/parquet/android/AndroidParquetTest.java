@@ -1,17 +1,11 @@
 package org.sebastiaan.parquet.android;
 
-import blue.strategic.parquet.CompressionCodecName;
-import blue.strategic.parquet.Dehydrator;
-import blue.strategic.parquet.Hydrator;
-import blue.strategic.parquet.HydratorSupplier;
-import blue.strategic.parquet.ParquetWriter;
-import org.apache.parquet.schema.*;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.sebastiaan.testutils.AssertHelper;
+import org.sebastiaan.testutils.Row;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,82 +13,45 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import blue.strategic.parquet.CompressionCodecName;
+import blue.strategic.parquet.Dehydrator;
+import blue.strategic.parquet.Hydrator;
+import blue.strategic.parquet.HydratorSupplier;
+import blue.strategic.parquet.ParquetReader;
+import blue.strategic.parquet.ParquetWriter;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
  */
-class ParquetTest {
+class AndroidParquetTest {
     static final int numRows = 1000;
     static final List<Row> data;
 
     static {
         List<Row> rows = new ArrayList<>(numRows);
         for (int i = 0; i < numRows; ++i) {
-            rows.add(new Row(i, "KingHenryThe"+i, 18+(i%10)));
+            rows.add(new Row(i, "KingHenryThe" + i, 18 + (i % 10)));
         }
         data = rows;
-    }
-
-    static class Row {
-        public long id;
-        public String name;
-        public int age;
-
-        public Row(long id, String name, int age) {
-            this.id = id;
-            this.name = name;
-            this.age = age;
-        }
-
-        /** Helper function to create a row */
-        public static Row fromValues(List<Object> values) {
-            return new Row(
-                    (long) values.get(0), // id
-                    (String) values.get(1), // name
-                    (int) values.get(2) // age
-            );
-        }
-
-        public static String[] names = new String[] {"id", "name", "age"};
-        public static Type[] types = new Type[] {
-                Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(names[0]),
-                Types.required(PrimitiveType.PrimitiveTypeName.BINARY).as(LogicalTypeAnnotation.stringType()).named(names[1]),
-                Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(names[2])
-        };
-        public Object[] values() { return new Object[] {id, name, age}; }
-
-        public static final MessageType schema = new MessageType("testTable", types);
-
-        @Override
-        public int hashCode() {
-            return Long.hashCode(id); // id's should be unique and thus be perfect for hashing.
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            // For testing purposes, we do a full comparison between Rows
-            // to show all fields match after reading/writing
-            return obj instanceof Row &&
-                    this.id == ((Row) obj).id &&
-                    Objects.equals(this.name, ((Row) obj).name) &&
-                    this.age == ((Row) obj).age;
-        }
     }
 
     @TempDir
     Path tempDir;
 
-    public static final String[] COMPRESSION_CODECS = {
-            CompressionCodecName.UNCOMPRESSED.name(),
-            CompressionCodecName.SNAPPY.name()
+    /** Currently supported codecs (with the required dependency behind them) **/
+    public static final CompressionCodecName[] IMPLEMENTED_COMPRESSION_CODECS = {
+            CompressionCodecName.UNCOMPRESSED, // no dependency needed
+            CompressionCodecName.SNAPPY        // implementation "com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9"
     };
 
     @ParameterizedTest
-//    @ValueSource(strings = COMPRESSION_CODECS)
     @EnumSource(CompressionCodecName.class)
     void writeParquet(CompressionCodecName compressionCodecName) throws IOException {
+        if (Arrays.stream(IMPLEMENTED_COMPRESSION_CODECS).noneMatch(codec -> codec == compressionCodecName))
+            return; // We do not support this codec yet
         final Path tempFile = Files.createFile(tempDir.resolve("test.parquet"));
         Dehydrator<Row> dehydrator = getRowDehydrator();
 
@@ -110,6 +67,31 @@ class ParquetTest {
 
         Assertions.assertEquals(numRows, writtenRows);
         AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(CompressionCodecName.class)
+    void readParquet(CompressionCodecName compressionCodecName) throws IOException {
+        if (Arrays.stream(IMPLEMENTED_COMPRESSION_CODECS).noneMatch(codec -> codec == compressionCodecName))
+            return; // We do not support this codec yet
+        final Path tempFile = Files.createFile(tempDir.resolve("test.parquet"));
+        Dehydrator<Row> dehydrator = getRowDehydrator();
+
+        // write
+        try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, tempFile.toFile(), dehydrator, compressionCodecName)) {
+            // Here we write all Row data to parquet
+            for (Row datum : data) {
+                parquetWriter.write(datum);
+            }
+        }
+
+        AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
+
+        // read
+        try(Stream<Row> readStream = ParquetReader.streamContent(tempFile.toFile(), HydratorSupplier.constantly(getRowHydrator()))) {
+            List<Row> readData = readStream.collect(Collectors.toList());
+            Assertions.assertEquals(data, readData);
+        }
     }
 
     /** @return Dehydrator, which tells how to write (store) a single Row record at a time. */
