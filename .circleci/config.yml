@@ -56,7 +56,10 @@ jobs:
 workflows:
   test-and-build:
     jobs:
-      - unit-test
+      - unit-test:
+          filters: # Execute for all tags, and for commits to branches.
+            tags: # Re-adds tags, which are ignored by default.
+              only: /.*/
       - android-test:
           matrix:
             alias: android-test-all
@@ -67,6 +70,8 @@ workflows:
           name: android-test-<<matrix.system-image>>
           requires:
             - unit-test
-          filters: # Only test for commits to main branch
+          filters: # Only execute for tags, ignore commits to branches.
+            tags:
+              only: /^.*/
             branches:
               only: master

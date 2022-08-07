@@ -1,4 +1,5 @@
 # parquet-android
+[![<Sebastiaan-Alvarez-Rodriguez>](https://circleci.com/gh/Sebastiaan-Alvarez-Rodriguez/parquet-android.svg?style=svg)](https://app.circleci.com/pipelines/github/Sebastiaan-Alvarez-Rodriguez/parquet-android)
 
 This project satisfies 2 goals:
  1. Read and write snappy-compressed parquet on Android devices.
@@ -35,10 +36,15 @@ dependencies {
 ```
 
 ## Using this project
-See [example] for reading and writing parquet files.
-
+See [example](parquet-android/src/test/java/org/sebastiaan/parquet/android/ParquetTest.java)
+for reading and writing parquet files.
 
 ## FAQ
+Q: Which compression algorithms are supported?
+A: We currently support `uncompressed` out of the box for writing and reading.
+Add [snappy-android](https://github.com/Sebastiaan-Alvarez-Rodriguez/snappy-android)
+as a dependency to add `snappy` compression support.
+
 Q: Can I use this project for non-Android (e.g. normal Java, iOS) projects?  
 A: No, this project produces an Android Archive (AAR) binary, which only works for android.
 
