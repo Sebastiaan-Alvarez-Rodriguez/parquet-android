@@ -68,4 +68,4 @@ workflows:
             - unit-test
           filters: # Only test for commits to main branch
             branches:
-              only: main
+              only: master
