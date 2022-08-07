@@ -9,7 +9,6 @@ jobs:
   unit-test:
     executor:
       name: android/android-machine
-      resource-class: xlarge
     steps:
       - checkout
       - android/restore-gradle-cache
@@ -36,7 +35,6 @@ jobs:
         default: system-images;android-31;google_apis;x86
     executor:
       name: android/android-machine
-      resource-class: xlarge
     steps:
       - checkout
       - android/start-emulator-and-run-tests:
@@ -53,21 +51,6 @@ jobs:
       - store_artifacts:
           path: ~/test-results/junit
 
-#  release-build:
-#    executor:
-#      name: android/android-machine
-#      resource-class: xlarge
-#    steps:
-#      - checkout
-#      - android/restore-gradle-cache
-#      - android/restore-build-cache
-#      - run:
-#          name: Assemble release build
-#          command: |
-#            ./gradlew assembleRelease
-#      - store_artifacts:
-#          path: app/build/outputs/apk/release/app-release-unsigned.apk
-
 workflows:
   test-and-build:
     jobs:
@@ -81,14 +64,8 @@ workflows:
                 - system-images;android-30;google_apis;x86
                 - system-images;android-29;google_apis;x86
           name: android-test-<<matrix.system-image>>
-          filters:
+          requires:
+            - unit-test
+          filters: # Only test for commits to main branch
             branches:
-              only: main # Commits to main branch
-#      - release-build:
-#          requires:
-#            - unit-test
-#            - android-test-all
-#            - benchmarks-emulator
-#          filters:
-#            branches:
-#              only: main # Commits to main branch
+              only: main
