@@ -9,6 +9,7 @@ jobs:
   unit-test:
     executor:
       name: android/android-machine
+      tag: 2022.07.1 # pick image tag from https://circleci.com/developer/images/image/cimg/android#image-tags
     steps:
       - checkout
       - android/restore-gradle-cache
@@ -35,6 +36,7 @@ jobs:
         default: system-images;android-31;google_apis;x86
     executor:
       name: android/android-machine
+      tag: 2022.07.1 # pick image tag from https://circleci.com/developer/images/image/cimg/android#image-tags
     steps:
       - checkout
       - android/start-emulator-and-run-tests:
