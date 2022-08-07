@@ -14,7 +14,7 @@ Our Android bindings are compiled for `minSdk=29, targetSdk=32, compileSdk=32`.
 
 
 ## Depending on this project
-We publish [releases](https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android/releases).
+We publish [releases](https://github.com/Sebastiaan-Alvarez-Rodriguez/parquet-android/releases)
 on jitpack.
 
 In your project root `build.gradle`:
