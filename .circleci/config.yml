@@ -33,7 +33,7 @@ jobs:
     parameters:
       system-image:
         type: string
-        default: system-images;android-31;google_apis;x86
+        default: system-images;android-30;google_apis;x86
     executor:
       name: android/android-machine
       tag: 2022.07.1 # pick image tag from https://circleci.com/developer/images/image/cimg/android#image-tags
@@ -62,7 +62,6 @@ workflows:
             alias: android-test-all
             parameters:
               system-image:
-                - system-images;android-31;google_apis;x86
                 - system-images;android-30;google_apis;x86
                 - system-images;android-29;google_apis;x86
           name: android-test-<<matrix.system-image>>
