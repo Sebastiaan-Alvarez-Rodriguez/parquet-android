@@ -10,7 +10,7 @@ Current package is under 3MB.
 
 ## Versioning
 Parquet-android versioning scheme follows the versions of the parquet library.
-E.g. Snappy-android `1.12.3` provides snappy library version `1.12.3`.  
+E.g. Parquet-android `1.12.3` provides parquet library version `1.12.3`.  
 Our Java bindings are compiled for Java 11.  
 Our Android bindings are compiled for `minSdk=29, targetSdk=32, compileSdk=32`.
 
