@@ -1,5 +1,6 @@
 # parquet-android
 [![<Sebastiaan-Alvarez-Rodriguez>](https://circleci.com/gh/Sebastiaan-Alvarez-Rodriguez/parquet-android.svg?style=svg)](https://app.circleci.com/pipelines/github/Sebastiaan-Alvarez-Rodriguez/parquet-android)
+[![](https://jitpack.io/v/Sebastiaan-Alvarez-Rodriguez/parquet-android.svg)](https://jitpack.io/#Sebastiaan-Alvarez-Rodriguez/parquet-android)
 
 This project satisfies 2 goals:
  1. Read and write snappy-compressed parquet on Android devices.
