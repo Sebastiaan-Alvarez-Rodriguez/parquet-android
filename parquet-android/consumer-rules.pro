@@ -1,0 +1,2 @@
+-keeppackagenames class org.apache.parquet.*
+-keepnames class org.apache.parquet.*

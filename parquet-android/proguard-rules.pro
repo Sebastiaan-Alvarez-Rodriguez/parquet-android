@@ -19,3 +19,5 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+-keeppackagenames class org.apache.parquet.*
+-keepnames class org.apache.parquet.*
