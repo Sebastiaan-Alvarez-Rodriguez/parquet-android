@@ -26,7 +26,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false // very important, otherwise all source code is removed (obviously)
+            minifyEnabled true // very important, otherwise all source code is removed (obviously)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // The androidx.benchmark plugin configures release buildType with proper settings, such as:
             // - disables code coverage

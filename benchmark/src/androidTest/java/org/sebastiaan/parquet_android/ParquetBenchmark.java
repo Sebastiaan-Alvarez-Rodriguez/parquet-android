@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import blue.strategic.parquet.CompressionCodecName;
-import blue.strategic.parquet.Dehydrator;
 import blue.strategic.parquet.ParquetWriter;
 
 /**

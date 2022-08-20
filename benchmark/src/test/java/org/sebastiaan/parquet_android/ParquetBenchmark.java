@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import blue.strategic.parquet.CompressionCodecName;
-import blue.strategic.parquet.Dehydrator;
 import blue.strategic.parquet.ParquetWriter;
 
 /**
@@ -27,7 +26,7 @@ import blue.strategic.parquet.ParquetWriter;
  */
 @RunWith(AndroidJUnit4.class)
 public class ParquetBenchmark {
-    static final int numRows = 1000000;
+    static final int numRows = 1000;
     static List<Row> data; // Do not make this field local or final, as the JVM may constant-fold it then.
 
     static {
