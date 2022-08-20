@@ -1,0 +1,100 @@
+plugins {
+    id 'com.android.library'
+    id 'androidx.benchmark'
+}
+
+android {
+    compileSdk 32
+
+    defaultConfig {
+        minSdk 29
+        targetSdk 32
+
+        // Set this argument to capture profiling information, instead of measuring performance.
+        // Can be one of:
+        //   * None
+        //   * StackSampling
+        //   * MethodTracing
+        // See full descriptions of available options at: d.android.com/benchmark#profiling
+        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = 'StackSampling'
+
+        testInstrumentationRunner 'androidx.benchmark.junit4.AndroidBenchmarkRunner'
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    testBuildType = "release"
+
+    buildTypes {
+        release {
+            minifyEnabled false // very important, otherwise all source code is removed (obviously)
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // The androidx.benchmark plugin configures release buildType with proper settings, such as:
+            // - disables code coverage
+            // - adds CPU clock locking task
+            // - signs release buildType with debug signing config
+            // - copies benchmark results into build/outputs/connected_android_test_additional_output folder
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility android_java_version_src
+        targetCompatibility android_java_version_target
+    }
+}
+
+configurations {
+    implementation.extendsFrom(embed)
+    testImplementation.extendsFrom(implementation)
+    androidTestImplementation.extendsFrom(testImplementation)
+    androidTestCompileOnly.extendsFrom(testCompileOnly)
+}
+
+dependencies {
+    implementation "androidx.appcompat:appcompat:$appcompat_version"
+
+    implementation project(path: ':parquet-android')
+//    implementation "com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9"
+    // parquet-floor-android dependencies below repeated for testing
+    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
+    testCompileOnly("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
+        transitive = false
+    }
+    testCompileOnly("org.apache.parquet:parquet-hadoop:$parquet_version") {
+        transitive = false
+    }
+    testCompileOnly("org.apache.parquet:parquet-column:$parquet_version") {
+        transitive = false
+    }
+    //
+
+    compileOnly "org.apache.parquet:parquet-common:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
+    compileOnly "org.apache.yetus:audience-annotations:$parquet_yetus_version"
+    compileOnly "org.slf4j:slf4j-api:$parquet_slf4j_version"
+
+    // Test dependencies
+    implementation "androidx.benchmark:benchmark-common:$benchmark_version"
+    implementation "androidx.benchmark:benchmark-junit4:$benchmark_version"
+
+    testImplementation "junit:junit:$benchmark_junit_version"
+
+    testImplementation "androidx.test:runner:$benchmark_androidxtest_version"
+    testImplementation "androidx.test:rules:$benchmark_androidxtest_version"
+    testImplementation "androidx.test.ext:junit:$benchmark_testext_version"
+
+    testImplementation 'com.opencsv:opencsv:5.6'
+
+    testImplementation project(path: ':testutils')
+//    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
+//
+//
+//    // Android Test dependencies
+//    androidTestCompileOnly project(path: ':parquet-android:parquet-floor-android')
+}
+
+java {
+    sourceCompatibility = android_java_version_src
+    targetCompatibility = android_java_version_target
+}

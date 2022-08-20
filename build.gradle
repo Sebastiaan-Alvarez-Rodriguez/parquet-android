@@ -9,6 +9,16 @@ buildscript {
 
         android_java_version_src = JavaVersion.VERSION_11
         android_java_version_target = JavaVersion.VERSION_11
+
+
+        // benchmark submodule variables
+        benchmark_version = "1.1.0"
+
+        benchmark_junit_version = '4.13.2'
+        benchmark_androidxtest_version = '1.4.0'
+        benchmark_testext_version = '1.1.3'
+
+        appcompat_version = '1.5.0'
     }
 
     repositories {
@@ -20,6 +30,7 @@ buildscript {
         classpath 'com.android.tools.build:gradle:7.2.2'
         classpath 'com.github.kezong:fat-aar:1.3.8'
         classpath "de.mannodermaus.gradle.plugins:android-junit5:1.8.2.0"
+        classpath "androidx.benchmark:benchmark-gradle-plugin:$benchmark_version"
     }
 }
 

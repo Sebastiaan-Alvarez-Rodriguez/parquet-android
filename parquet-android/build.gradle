@@ -8,7 +8,6 @@ plugins {
     id 'com.android.library'
     id 'maven-publish'
     id 'com.kezong.fat-aar'
-    id 'de.mannodermaus.android-junit5'
 }
 
 group our_group
@@ -82,6 +81,7 @@ dependencies {
     testImplementation project(path: ':testutils')
     testCompileOnly project(path: ':parquet-android:parquet-floor-android')
 
+    // Android Test dependencies
     androidTestCompileOnly project(path: ':parquet-android:parquet-floor-android')
 
     androidTestImplementation("androidx.test:runner:1.4.0")
