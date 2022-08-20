@@ -3,7 +3,7 @@ package org.sebastiaan.parquet.android;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.sebastiaan.testutils.AssertHelper;
+import org.sebastiaan.testutils.Junit5AssertHelper;
 import org.sebastiaan.testutils.Row;
 
 import java.io.IOException;
@@ -55,7 +55,7 @@ class ParquetTest {
         }
 
         Assertions.assertEquals(numRows, writtenRows);
-        AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
+        Junit5AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
     }
 
     @Test
@@ -71,7 +71,7 @@ class ParquetTest {
             }
         }
 
-        AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
+        Junit5AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
 
         // read
         try(Stream<Row> readStream = ParquetReader.streamContent(tempFile.toFile(), HydratorSupplier.constantly(getRowHydrator()))) {

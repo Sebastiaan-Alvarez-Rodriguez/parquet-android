@@ -46,8 +46,7 @@ public class Row {
 
     @Override
     public boolean equals(Object obj) {
-        // For testing purposes, we do a full comparison between Rows
-        // to show all fields match after reading/writing
+        // For testing purposes, we do a full comparison between Rows to show all fields match after reading/writing
         return obj instanceof Row &&
                 this.id == ((Row) obj).id &&
                 Objects.equals(this.name, ((Row) obj).name) &&

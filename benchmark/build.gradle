@@ -3,6 +3,14 @@ plugins {
     id 'androidx.benchmark'
 }
 
+/**
+ * Execute tests using:
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetWrite
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetRead
+ *
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.CSVBenchmark#csvWrite
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.CSVBenchmark#csvRead
+ */
 android {
     compileSdk 32
 
@@ -42,6 +50,9 @@ android {
     }
 }
 
+group "org.sebastiaan.parquet_android.benchmark"
+version our_version
+
 configurations {
     implementation.extendsFrom(embed)
     testImplementation.extendsFrom(implementation)
@@ -50,10 +61,11 @@ configurations {
 }
 
 dependencies {
-    implementation "androidx.appcompat:appcompat:$appcompat_version"
+//    implementation "androidx.appcompat:appcompat:$appcompat_version" // TODO: Can remove?
 
     implementation project(path: ':parquet-android')
-//    implementation "com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9"
+    implementation 'com.opencsv:opencsv:5.6'
+    implementation "com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9"
     // parquet-floor-android dependencies below repeated for testing
     testCompileOnly project(path: ':parquet-android:parquet-floor-android')
     testCompileOnly("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
@@ -65,9 +77,8 @@ dependencies {
     testCompileOnly("org.apache.parquet:parquet-column:$parquet_version") {
         transitive = false
     }
-    //
 
-    compileOnly "org.apache.parquet:parquet-common:$parquet_version"
+    compileOnly "org.apache.parquet:parquet-common:$parquet_version" // TODO: Need implementation?
     compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
     compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
     compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
@@ -84,10 +95,8 @@ dependencies {
     testImplementation "androidx.test:rules:$benchmark_androidxtest_version"
     testImplementation "androidx.test.ext:junit:$benchmark_testext_version"
 
-    testImplementation 'com.opencsv:opencsv:5.6'
-
     testImplementation project(path: ':testutils')
-//    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
+    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
 //
 //
 //    // Android Test dependencies

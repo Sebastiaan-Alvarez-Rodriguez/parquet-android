@@ -2,7 +2,9 @@ package org.sebastiaan.testutils;
 
 import org.junit.jupiter.api.Assertions;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -13,7 +15,8 @@ import java.util.stream.Stream;
 import blue.strategic.parquet.HydratorSupplier;
 import blue.strategic.parquet.ParquetReader;
 
-public class AssertHelper {
+/** jUnit5 assertion helper */
+public class Junit5AssertHelper {
 
     public static <T> void assertWritten(List<T> data, Path file, HydratorSupplier<List<Object>, T> supplier) throws IOException {
         assertWritten(data, file.toFile(), supplier);
@@ -22,6 +25,16 @@ public class AssertHelper {
     public static <T> void assertWritten(List<T> data, File file, HydratorSupplier<List<Object>, T> supplier) throws IOException {
         Stream<T> readStream = ParquetReader.streamContent(file, supplier);
         assertStreamEquals(data.stream(), readStream);
+    }
+
+    /** Asserts that given file has given lines **/
+    public static void assertFileEquals(Stream<String> expected, Path actual) throws IOException {
+        assertFileEquals(expected, actual.toFile());
+    }
+    public static void assertFileEquals(Stream<String> expected, File actual) throws IOException {
+        try (expected; BufferedReader reader = new BufferedReader(new FileReader(actual))) {
+            assertStreamEquals(expected, reader.lines());
+        }
     }
 
     /** Asserts that 2 sequential, ordered streams are equivalent. Closes the streams. */
