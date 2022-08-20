@@ -12,13 +12,18 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.sebastiaan.testutils.Row;
 import org.sebastiaan.testutils.RowDehydrator;
+import org.sebastiaan.testutils.RowHydrator;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import blue.strategic.parquet.CompressionCodecName;
+import blue.strategic.parquet.HydratorSupplier;
+import blue.strategic.parquet.ParquetReader;
 import blue.strategic.parquet.ParquetWriter;
 
 /**
@@ -44,13 +49,13 @@ public class ParquetBenchmark {
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
-    public void parquetWrite() throws IOException {
+    public void parquetWriteUncompressed() throws IOException {
         BenchmarkState state = benchmarkRule.getState();
 
         File file = testFolder.newFile();
         while (state.keepRunning()) {
+            // write
             try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, file, new RowDehydrator(), CompressionCodecName.UNCOMPRESSED)) {
-                // Here we write all Row data to parquet
                 for (Row datum : data) {
                     parquetWriter.write(datum);
                 }
@@ -58,28 +63,55 @@ public class ParquetBenchmark {
         }
     }
 
-//    @Benchmark
-//    @Warmup(iterations = 5, time = 5)
-//    @Measurement(iterations = 5, time = 5)
-//    @BenchmarkMode(Mode.AverageTime)
-//    public void parquetReadAverage(Blackhole bh) throws IOException {
-//        final Path tempFile = Files.createFile(tempDir.resolve("test.parquet"));
-//        Dehydrator<Row> dehydrator = getRowDehydrator();
-//
-//        // write
-//        try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, tempFile.toFile(), dehydrator, CompressionCodecName.UNCOMPRESSED)) {
-//            // Here we write all Row data to parquet
-//            for (Row datum : data) {
-//                parquetWriter.write(datum);
-//            }
-//        }
-//
-//        AssertHelper.assertWritten(data, tempFile, HydratorSupplier.constantly(getRowHydrator()));
-//
-//        // read
-//        try(Stream<Row> readStream = ParquetReader.streamContent(tempFile.toFile(), HydratorSupplier.constantly(getRowHydrator()))) {
-//            List<Row> readData = readStream.collect(Collectors.toList());
-//            Assertions.assertEquals(data, readData);
-//        }
-//    }
+    @Test
+    public void parquetWriteSnappy() throws IOException {
+        BenchmarkState state = benchmarkRule.getState();
+        // write
+        File file = testFolder.newFile();
+        while (state.keepRunning()) {
+            try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, file, new RowDehydrator(), CompressionCodecName.SNAPPY)) {
+                for (Row datum : data) {
+                    parquetWriter.write(datum);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void parquetReadUncompressed() throws IOException {
+        BenchmarkState state = benchmarkRule.getState();
+        File file = testFolder.newFile();
+        // write once
+        try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, file, new RowDehydrator(), CompressionCodecName.UNCOMPRESSED)) {
+            for (Row datum : data) {
+                parquetWriter.write(datum);
+            }
+        }
+
+        while (state.keepRunning()) {
+            // read
+            try(Stream<Row> readStream = ParquetReader.streamContent(file, HydratorSupplier.constantly(new RowHydrator()))) {
+                List<Row> readData = readStream.collect(Collectors.toList());
+            }
+        }
+    }
+
+    @Test
+    public void parquetReadSnappy() throws IOException {
+        BenchmarkState state = benchmarkRule.getState();
+        File file = testFolder.newFile();
+        // write once
+        try(ParquetWriter<Row> parquetWriter = ParquetWriter.writeFile(Row.schema, file, new RowDehydrator(), CompressionCodecName.SNAPPY)) {
+            for (Row datum : data) {
+                parquetWriter.write(datum);
+            }
+        }
+
+        while (state.keepRunning()) {
+            // read
+            try(Stream<Row> readStream = ParquetReader.streamContent(file, HydratorSupplier.constantly(new RowHydrator()))) {
+                List<Row> readData = readStream.collect(Collectors.toList());
+            }
+        }
+    }
 }

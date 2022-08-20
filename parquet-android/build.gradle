@@ -63,7 +63,7 @@ configurations {
 
 dependencies {
     embed project(path: ':parquet-android:parquet-floor-android-decoy')
-    embed("com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9")
+    embed("com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.10")
 
     // We need to depend on these things in parquet
     implementation "org.apache.parquet:parquet-common:$parquet_version"

@@ -4,10 +4,28 @@ plugins {
 }
 
 /**
- * Execute tests using:
- * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetWrite
- * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetRead
+ * Test execution is handled by gradle.
+ * androidx.benchmark.junit4.AndroidBenchmarkRunner delegates work to android junit runner, and accepts the same arguments.
+ * See the potential arguments here:
+ *   - https://github.com/android/android-test/blob/androidx-test-1.1/runner/android_junit_runner/java/androidx/test/runner/AndroidJUnitRunner.java#L76
+ *   - (deprecated link, still provides correct args): https://developer.android.com/reference/android/support/test/runner/AndroidJUnitRunner.html#execution-options:
  *
+ * We list the benchmark commands we used for testing below.
+ *
+ * > Note that Output data (json file) can be found on the android device in:
+ * > storage/self/primary/Android/media/org.sebastiaan.parquet_android.benchmark.test.org.sebastiaan.parquet_android.benchmark.test-benchmarkData.json
+ *
+ * ## All tests at once
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.tests_regex=org.sebastiaan.parquet_android.*
+ *
+ * ## Parquet tests - individual
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetWriteUncompressed
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetWriteSnappy
+ *
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetReadUncompressed
+ * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.ParquetBenchmark#parquetReadSnappy
+ *
+ * ## CSV tests - individual
  * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.CSVBenchmark#csvWrite
  * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.class=org.sebastiaan.parquet_android.CSVBenchmark#csvRead
  */
@@ -24,7 +42,7 @@ android {
         //   * StackSampling
         //   * MethodTracing
         // See full descriptions of available options at: d.android.com/benchmark#profiling
-        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = 'StackSampling'
+        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = 'None'
 
         testInstrumentationRunner 'androidx.benchmark.junit4.AndroidBenchmarkRunner'
         consumerProguardFiles "consumer-rules.pro"
@@ -50,9 +68,6 @@ android {
     }
 }
 
-group "org.sebastiaan.parquet_android.benchmark"
-version our_version
-
 configurations {
     implementation.extendsFrom(embed)
     testImplementation.extendsFrom(implementation)
@@ -61,11 +76,8 @@ configurations {
 }
 
 dependencies {
-//    implementation "androidx.appcompat:appcompat:$appcompat_version" // TODO: Can remove?
-
     implementation project(path: ':parquet-android')
     implementation 'com.opencsv:opencsv:5.6'
-    implementation "com.github.Sebastiaan-Alvarez-Rodriguez:snappy-android:1.1.9"
     // parquet-floor-android dependencies below repeated for testing
     testCompileOnly project(path: ':parquet-android:parquet-floor-android')
     testCompileOnly("com.github.strategicblue:parquet-floor:$parquet_floor_version") {
@@ -78,7 +90,7 @@ dependencies {
         transitive = false
     }
 
-    compileOnly "org.apache.parquet:parquet-common:$parquet_version" // TODO: Need implementation?
+    implementation "org.apache.parquet:parquet-common:$parquet_version"
     compileOnly "org.apache.parquet:parquet-encoding:$parquet_version"
     compileOnly "org.apache.parquet:parquet-format-structures:$parquet_version"
     compileOnly "org.apache.parquet:parquet-jackson:$parquet_version"
@@ -96,7 +108,7 @@ dependencies {
     testImplementation "androidx.test.ext:junit:$benchmark_testext_version"
 
     testImplementation project(path: ':testutils')
-    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
+//    testCompileOnly project(path: ':parquet-android:parquet-floor-android')
 //
 //
 //    // Android Test dependencies
