@@ -51,17 +51,22 @@ class StackedBarPlot(PlotInterface):
     dataframe={'name': <name'. 'className': <className>, 'metrics': {'timeNs': {'runs': <data>}}}
     ```
     '''
-    def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=0.1):
+    def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=None):
         plot_preprocess(plt, font_large)
         try:
+
             fig, ax = plt.subplots()
             dataframes = list(dataframes)
             bar_length = len(dataframes[0])
+            if not width:
+                width = 1.1 / len(dataframes)
+
             if any(len(bar) != bar_length for bar in dataframes):
                 print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in dataframes]}')
                 return
 
-            old_bar_data = None
+            old_bar_data = [0.0 for x in range(len(dataframes))]
+
 
             for idx in range(bar_length):
                 bar_data = []
@@ -69,14 +74,13 @@ class StackedBarPlot(PlotInterface):
                     bar_data.append(bar[idx]['metrics']['timeNs']['runs'])
 
                 averages = [statistics.fmean(dataframe) for dataframe in bar_data]
-                print(f'averages: {averages} (old: {old_bar_data})')
-                if not old_bar_data: # first iteration
-                    ax.bar(idx, averages, width, label='InitTime')
-                    print('bar 1 success')
-                else:
-                    ax.bar(idx, averages, width, bottom=old_bar_data, label='CoolTime')
-                    print(f'bar {idx+1} success')
-                old_bar_data = averages
+                ax.bar(list(range(len(averages))), averages, width, bottom=old_bar_data, label='InitTime')
+                # ax.text() TODO: Add height labels to bars
+                old_bar_data = [a+b for a, b in zip(old_bar_data, averages)]
+            plt.xticks([idx for idx in range(len(dataframes))], ["CSV", "Parquet uncompressed", "Parquet+Snappy"])
+            ax.grid(axis='y')
+            ax.set(xlabel='Data type', ylabel='Execution time (ns)', title=title)
+            ax.set_ylim(ymin=0)
             plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title)
         finally:
             plot_reset(plt)
