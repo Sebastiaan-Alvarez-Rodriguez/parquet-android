@@ -24,7 +24,7 @@ class LinePlot(PlotInterface):
     Generates a line plot for given data frames. Expectes dataframes of form:
     ```
     dataframes=[dataframe, ...]
-    dataframe={"name": <name". "className": <className>, "metrics": {"timeNs": {"runs": <data>}}}
+    dataframe={'name': <name'. 'className': <className>, 'metrics': {'timeNs': {'runs': <data>}}}
     ```
     '''
     def plot(self, dataframes, destination, output_type, show, font_large, title=None):
@@ -32,7 +32,7 @@ class LinePlot(PlotInterface):
         try:
             fig, ax = plt.subplots()
             for dataframe in dataframes:
-                fqn = dataframe["className"].split('.')[-1]+":"+dataframe["name"]
+                fqn = f'{dataframe["className"].split(".")[-1]}:{dataframe["name"]}'
                 runs = [x / 1000000 for x in dataframe["metrics"]["timeNs"]["runs"]]
                 ax.plot(runs, label=fqn)
 
@@ -48,17 +48,17 @@ class StackedBarPlot(PlotInterface):
     ```
     dataframes=[bar, ...]
     bar=[dataframe,...] (all bars should have equivalent size)
-    dataframe={"name": <name". "className": <className>, "metrics": {"timeNs": {"runs": <data>}}}
+    dataframe={'name': <name'. 'className': <className>, 'metrics': {'timeNs': {'runs': <data>}}}
     ```
     '''
-    def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=1):
+    def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=0.1):
         plot_preprocess(plt, font_large)
         try:
             fig, ax = plt.subplots()
             dataframes = list(dataframes)
             bar_length = len(dataframes[0])
             if any(len(bar) != bar_length for bar in dataframes):
-                print("Error: Found different bar lengths (expected "+str(bar_length)+"): "+str([len(bar) for bar in dataframes]))
+                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in dataframes]}')
                 return
 
             old_bar_data = None
@@ -66,15 +66,16 @@ class StackedBarPlot(PlotInterface):
             for idx in range(bar_length):
                 bar_data = []
                 for bar in dataframes:
-                    bar_data.append(bar[idx]["metrics"]["timeNs"]["runs"])
+                    bar_data.append(bar[idx]['metrics']['timeNs']['runs'])
 
                 averages = [statistics.fmean(dataframe) for dataframe in bar_data]
+                print(f'averages: {averages} (old: {old_bar_data})')
                 if not old_bar_data: # first iteration
                     ax.bar(idx, averages, width, label='InitTime')
                     print('bar 1 success')
                 else:
-                    ax.bar(idx, averages, width, bottom=bar_data, label='InitTime')
-                    print('bar '+str(idx+1)+' success')
+                    ax.bar(idx, averages, width, bottom=old_bar_data, label='CoolTime')
+                    print(f'bar {idx+1} success')
                 old_bar_data = averages
             plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title)
         finally:
@@ -82,10 +83,10 @@ class StackedBarPlot(PlotInterface):
 
 
 
-default_generator = "line"
+default_generator = 'line'
 generators = {
-    "line": LinePlot,
-    "stackedbar": StackedBarPlot
+    'line': LinePlot,
+    'stackedbar': StackedBarPlot
 }
 
 
@@ -126,8 +127,8 @@ def plot_reset(plot):
 def filter_benchmarks(benchmarks, first=False, name_contains=None, classname_contains=None):
     filtered = filter(
         lambda item:
-            (not name_contains or name_contains.lower() in item["name"].lower()) and
-            (not classname_contains or classname_contains.lower() in item["className"].split('.')[-1].lower()),
+            (not name_contains or name_contains.lower() in item['name'].lower()) and
+            (not classname_contains or classname_contains.lower() in item['className'].split('.')[-1].lower()),
         benchmarks
     )
     return next(filtered) if first else filtered
@@ -145,16 +146,16 @@ def filetype_is_supported(extension):
 
 def store_plot(destination, plot, title, output_type):
     os.makedirs(destination, exist_ok=True)
-    plot.savefig(os.path.join(destination, title.replace(' ', '_') if title else 'default')+'.'+output_type)
+    plot.savefig(f'{os.path.join(destination, title.replace(" ", "_") if title else "default")}.{output_type}')
 
 
 ################################ Commandline ################################
 
 def add_args(parser):
     parser.add_argument('path', metavar='path', nargs='?', type=str, default='measurements/org.sebastiaan.parquet_android.benchmark.test-benchmarkData.json', help='Result path to read from.')
-    parser.add_argument('--generator', metavar='name', type=str, choices=generators.keys(), default=default_generator, help='plot generator to execute (default={}).'.format(default_generator))
+    parser.add_argument('--generator', metavar='name', type=str, choices=generators.keys(), default=default_generator, help=f'plot generator to execute (default={default_generator}).')
     parser.add_argument('--destination', metavar='path', nargs='?', type=str, default='plots/', help='If set, outputs plot to given output path. Point to a directory.')
-    parser.add_argument('--output-type', dest='output_type', metavar='type', type=str, choices=supported_filetypes(), default="pdf", help='Plot output type.')
+    parser.add_argument('--output-type', dest='output_type', metavar='type', type=str, choices=supported_filetypes(), default='pdf', help='Plot output type.')
     parser.add_argument('--no-show', dest='no_show', help='Do not show generated plot (useful on servers without window managers/forwarding).', action='store_true')
     parser.add_argument('--font-large', dest='font_large', help='If set, generates plots with larger font.', action='store_true')
 
@@ -181,15 +182,15 @@ def main():
     # Plot data
     ## Plot writes
     if args.generator == 'line':
-        plotinstance.plot(title='Write performance', dataframes=filter_benchmarks(data["benchmarks"], name_contains="write"), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
-        plotinstance.plot(title='Read performance', dataframes=filter_benchmarks(data["benchmarks"], name_contains="read"), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
+        plotinstance.plot(title='Write performance', dataframes=filter_benchmarks(data['benchmarks'], name_contains='write'), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
+        plotinstance.plot(title='Read performance', dataframes=filter_benchmarks(data['benchmarks'], name_contains='read'), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
     elif args.generator == 'stackedbar':
-        csvRead = filter_benchmarks(data["benchmarks"], name_contains="read", classname_contains="CSV", first=True)
-        csvWrite = filter_benchmarks(data["benchmarks"], name_contains="write", classname_contains="CSV", first=True)
-        parquetReadUncompressed = filter_benchmarks(data["benchmarks"], name_contains="readUncompressed", classname_contains="parquet", first=True)
-        parquetWriteUncompressed = filter_benchmarks(data["benchmarks"], name_contains="writeUncompressed", classname_contains="parquet", first=True)
-        parquetReadSnappy = filter_benchmarks(data["benchmarks"], name_contains="readSnappy", classname_contains="parquet", first=True)
-        parquetWriteSnappy = filter_benchmarks(data["benchmarks"], name_contains="writeSnappy", classname_contains="parquet", first=True)
+        csvRead = filter_benchmarks(data['benchmarks'], name_contains='read', classname_contains='CSV', first=True)
+        csvWrite = filter_benchmarks(data['benchmarks'], name_contains='write', classname_contains='CSV', first=True)
+        parquetReadUncompressed = filter_benchmarks(data['benchmarks'], name_contains='readUncompressed', classname_contains='parquet', first=True)
+        parquetWriteUncompressed = filter_benchmarks(data['benchmarks'], name_contains='writeUncompressed', classname_contains='parquet', first=True)
+        parquetReadSnappy = filter_benchmarks(data['benchmarks'], name_contains='readSnappy', classname_contains='parquet', first=True)
+        parquetWriteSnappy = filter_benchmarks(data['benchmarks'], name_contains='writeSnappy', classname_contains='parquet', first=True)
         plotinstance.plot(title='Write performance', dataframes=[[csvRead, csvWrite], [parquetReadUncompressed, parquetWriteUncompressed], [parquetReadSnappy, parquetWriteSnappy]], destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
 
 
