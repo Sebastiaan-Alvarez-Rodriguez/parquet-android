@@ -15,7 +15,7 @@ plugins {
  * > Note that Output data (json file) can be found on the android device in:
  * > storage/self/primary/Android/media/org.sebastiaan.parquet_android.benchmark.test.org.sebastiaan.parquet_android.benchmark.test-benchmarkData.json
  *
- * ## All tests at once
+ * ## All tests at once - takes approximately 30 minutes
  * gradle benchmark:connectedCheck -P android.testInstrumentationRunnerArguments.tests_regex=org.sebastiaan.parquet_android.*
  *
  * ## Parquet tests - individual
