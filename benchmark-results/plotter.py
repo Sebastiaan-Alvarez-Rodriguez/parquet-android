@@ -3,13 +3,14 @@ Plot script to generate plots.
 Written for python 3.10.4. Theoretically, this works with python 3.8 and up.
 Requires the following pips:
   matplotlib
+  numpy
 '''
 
 import argparse
 import json
+import numpy as np
 import os
 import statistics
-
 import matplotlib.pyplot as plt
 
 
@@ -47,8 +48,8 @@ class StackedBarPlot(PlotInterface):
     Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expectes dataframes of form:
     ```
     dataframes=[bar, ...]
-    bar=[dataframe,...] (all bars should have equivalent size)
-    dataframe={'name': <name'. 'className': <className>, 'metrics': {'timeNs': {'runs': <data>}}}
+    bar={'label: <label>', 'data': [dataframe,...]} (all bars should have equivalent size)
+    dataframe={'name': <name>. 'className': <className>, 'label': <label>, metrics': {'timeNs': {'runs': <data>}}}
     ```
     '''
     def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=None):
@@ -57,29 +58,35 @@ class StackedBarPlot(PlotInterface):
 
             fig, ax = plt.subplots()
             dataframes = list(dataframes)
-            bar_length = len(dataframes[0])
+            bar_length = len(dataframes[0]['data'])
             if not width:
                 width = 1.1 / len(dataframes)
 
-            if any(len(bar) != bar_length for bar in dataframes):
-                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in dataframes]}')
+            if any(len(bar['data']) != bar_length for bar in dataframes):
+                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar["data"]) for bar in dataframes]}')
                 return
 
-            old_bar_data = [0.0 for x in range(len(dataframes))]
-
-
+            old_averages = np.zeros(len(dataframes))
+            accumulated_std_errors = np.zeros(len(dataframes))
             for idx in range(bar_length):
                 bar_data = []
                 for bar in dataframes:
-                    bar_data.append(bar[idx]['metrics']['timeNs']['runs'])
+                    bar_data.append(np.array(bar['data'][idx]['metrics']['timeNs']['runs'])/1000000)
+                print(bar_data)
 
-                averages = [statistics.fmean(dataframe) for dataframe in bar_data]
-                ax.bar(list(range(len(averages))), averages, width, bottom=old_bar_data, label='InitTime')
-                # ax.text() TODO: Add height labels to bars
-                old_bar_data = [a+b for a, b in zip(old_bar_data, averages)]
-            plt.xticks([idx for idx in range(len(dataframes))], ["CSV", "Parquet uncompressed", "Parquet+Snappy"])
+                averages = np.array([dataframe.mean() for dataframe in bar_data])
+
+                accumulated_std_errors = accumulated_std_errors + np.array([np.std(dataframe[np.where((np.percentile(dataframe, 1) <= dataframe) * (dataframe <= np.percentile(dataframe, 99)))]) for dataframe in bar_data])
+                errors = accumulated_std_errors if idx+1 == bar_length else None
+                ax.bar(list(range(len(averages))), averages, width, bottom=old_averages, yerr=errors, label=dataframes[0]['data'][idx]['label'], capsize=20)
+                old_averages = old_averages + averages
+
+            for idx, bar_height in enumerate(old_averages):
+                ax.text(idx+width/1.9, bar_height, f"{bar_height:.4f}")
+
+            plt.xticks([idx for idx in range(len(dataframes))], [bar['label'] for bar in dataframes])
             ax.grid(axis='y')
-            ax.set(xlabel='Data type', ylabel='Execution time (ns)', title=title)
+            ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
             ax.set_ylim(ymin=0)
             plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title)
         finally:
@@ -190,12 +197,30 @@ def main():
         plotinstance.plot(title='Read performance', dataframes=filter_benchmarks(data['benchmarks'], name_contains='read'), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
     elif args.generator == 'stackedbar':
         csvRead = filter_benchmarks(data['benchmarks'], name_contains='read', classname_contains='CSV', first=True)
+        csvRead['label'] = 'Read'
         csvWrite = filter_benchmarks(data['benchmarks'], name_contains='write', classname_contains='CSV', first=True)
+        csvWrite['label'] = 'Write'
         parquetReadUncompressed = filter_benchmarks(data['benchmarks'], name_contains='readUncompressed', classname_contains='parquet', first=True)
+        parquetReadUncompressed['label'] = 'Read'
         parquetWriteUncompressed = filter_benchmarks(data['benchmarks'], name_contains='writeUncompressed', classname_contains='parquet', first=True)
+        parquetWriteUncompressed['label'] = 'Write'
         parquetReadSnappy = filter_benchmarks(data['benchmarks'], name_contains='readSnappy', classname_contains='parquet', first=True)
+        parquetReadSnappy['label'] = 'Read'
         parquetWriteSnappy = filter_benchmarks(data['benchmarks'], name_contains='writeSnappy', classname_contains='parquet', first=True)
-        plotinstance.plot(title='Write performance', dataframes=[[csvRead, csvWrite], [parquetReadUncompressed, parquetWriteUncompressed], [parquetReadSnappy, parquetWriteSnappy]], destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
+        parquetWriteSnappy['label'] = 'Write'
+
+        plotinstance.plot(
+            title='Read+Write performance',
+            dataframes=[
+                {'label': 'CSV', 'data': [csvRead, csvWrite]}, 
+                {'label': 'Parquet Uncompressed', 'data': [parquetReadUncompressed, parquetWriteUncompressed]},
+                {'label': 'Parquet Snappy', 'data': [parquetReadSnappy, parquetWriteSnappy]},
+            ],
+            destination=args.destination, 
+            output_type=args.output_type, 
+            show=not args.no_show,
+            font_large=args.font_large
+        )
 
 
 if __name__ == '__main__':
