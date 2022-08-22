@@ -40,15 +40,16 @@ import blue.strategic.parquet.ParquetWriter;
  */
 @RunWith(AndroidJUnit4.class)
 public class CSVBenchmark {
-    static final int numRows = 1000;
-    static List<CSVRow> data; // Do not make this field local or final, as the JVM may constant-fold it then.
+    static final int smallNumRows  =   1000;
+    static final int mediumNumRows =  10000;
+    static final int largeNumRows  = 100000;
 
-    static {
+    public static generate(int numRows) {
         List<CSVRow> rows = new ArrayList<>(numRows);
         for (int i = 0; i < numRows; ++i) {
             rows.add(new CSVRow(i, "KingHenryThe"+i, 18+(i%10)));
         }
-        data = rows;
+        return rows;
     }
 
     @Rule
@@ -58,9 +59,23 @@ public class CSVBenchmark {
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
-    public void csvWrite() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+    public void csvWriteSmall() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
         BenchmarkState state = benchmarkRule.getState();
+        csvWrite(smallNumRows, state);
+    }
+    @Test
+    public void csvWriteMedium() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        BenchmarkState state = benchmarkRule.getState();
+        csvWrite(mediumNumRows, state);
+    }
+    @Test
+    public void csvWriteLarge() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        BenchmarkState state = benchmarkRule.getState();
+        csvWrite(largeNumRows, state);
+    }
 
+    public void csvWrite(int numRows, BenchmarkState state) throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        List<CSVRow> data = generate(numRows);
         File file = testFolder.newFile();
         while (state.keepRunning()) {
             // write
@@ -72,8 +87,22 @@ public class CSVBenchmark {
     }
 
     @Test
-    public void csvRead() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+    public void csvReadSmall() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
         BenchmarkState state = benchmarkRule.getState();
+        csvRead(smallNumRows, state);
+    }
+    @Test
+    public void csvReadMedium() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        BenchmarkState state = benchmarkRule.getState();
+        csvRead(mediumNumRows, state);
+    }
+    @Test
+    public void csvReadLarge() throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        BenchmarkState state = benchmarkRule.getState();
+        csvRead(largeNumRows, state);
+    }
+    public void csvRead(int numRows, BenchmarkState state) throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        List<CSVRow> data = generate(numRows);
         File file = testFolder.newFile();
         // write once
         try (Writer writer = new FileWriter(file)) {
