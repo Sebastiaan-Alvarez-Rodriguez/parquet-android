@@ -10,7 +10,7 @@ import argparse
 import json
 import numpy as np
 import os
-import statistics
+import re
 import matplotlib.pyplot as plt
 
 
@@ -48,22 +48,27 @@ class StackedBarPlot(PlotInterface):
     Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expectes dataframes of form:
     ```
     dataframes=[bar, ...]
-    bar={'label: <label>', 'data': [dataframe,...]} (all bars should have equivalent size)
-    dataframe={'name': <name>. 'className': <className>, 'label': <label>, metrics': {'timeNs': {'runs': <data>}}}
+    bar=[dataframe,...] (all bars should have equivalent size)
+    dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
     ```
     '''
-    def plot(self, dataframes, destination, output_type, show, font_large, title=None, width=None):
+    def plot(self, dataframes, destination, output_type, show, font_large, bar_labels, segment_labels, title=None, width=None):
         plot_preprocess(plt, font_large)
         try:
-
             fig, ax = plt.subplots()
-            dataframes = list(dataframes)
-            bar_length = len(dataframes[0]['data'])
+            bar_length = len(dataframes[0])
             if not width:
                 width = 1.1 / len(dataframes)
 
-            if any(len(bar['data']) != bar_length for bar in dataframes):
-                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar["data"]) for bar in dataframes]}')
+            if any(len(bar) != bar_length for bar in dataframes):
+                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in dataframes]}.')
+                return
+
+            if len(bar_labels) != len(dataframes):
+                print(f'Incorrect amount of labels for bars. Have {len(bar_labels)} labels, {len(dataframes)} bars.')
+                return
+            if len(segment_labels) != bar_length:
+                print(f'Incorrect amount of segment labels for bars. Have {len(segment_labels)} labels, {bar_length} segments per bar.')
                 return
 
             old_averages = np.zeros(len(dataframes))
@@ -71,20 +76,19 @@ class StackedBarPlot(PlotInterface):
             for idx in range(bar_length):
                 bar_data = []
                 for bar in dataframes:
-                    bar_data.append(np.array(bar['data'][idx]['metrics']['timeNs']['runs'])/1000000)
-                print(bar_data)
+                    bar_data.append(np.array(bar[idx]['metrics']['timeNs']['runs'])/1000000)
 
                 averages = np.array([dataframe.mean() for dataframe in bar_data])
 
                 accumulated_std_errors = accumulated_std_errors + np.array([np.std(dataframe[np.where((np.percentile(dataframe, 1) <= dataframe) * (dataframe <= np.percentile(dataframe, 99)))]) for dataframe in bar_data])
                 errors = accumulated_std_errors if idx+1 == bar_length else None
-                ax.bar(list(range(len(averages))), averages, width, bottom=old_averages, yerr=errors, label=dataframes[0]['data'][idx]['label'], capsize=20)
+                ax.bar(list(range(len(averages))), averages, width, bottom=old_averages, yerr=errors, label=segment_labels[idx], capsize=20)
                 old_averages = old_averages + averages
 
             for idx, bar_height in enumerate(old_averages):
                 ax.text(idx+width/1.9, bar_height, f"{bar_height:.4f}")
 
-            plt.xticks([idx for idx in range(len(dataframes))], [bar['label'] for bar in dataframes])
+            plt.xticks([idx for idx in range(len(dataframes))], bar_labels)
             ax.grid(axis='y')
             ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
             ax.set_ylim(ymin=0)
@@ -99,10 +103,59 @@ generators = {
     'line': LinePlot,
     'stackedbar': StackedBarPlot
 }
+parametrized_sizes = [1000, 5000, 10000, 15000, 20000]
 
 
+################################ Commandline ################################
+
+def identify(data):
+    '''
+    Identifies results.: Provides benchmark['label'] containing:
+     - datatype: File type, e.g. 'csv';
+     - iotype: IO operation type, e.g. 'read';
+     - datasize: Data size used in operation;
+     - compression: Compression on data used in benchmark;
+    '''
+    for benchmark in data['benchmarks']:
+        benchmark['label'] = dict()
+        if 'csv' in benchmark['className'].split('.')[-1].lower():
+            benchmark['label']['datatype'] = 'csv'
+        elif 'parquet' in benchmark['className'].split('.')[-1].lower():
+            benchmark['label']['datatype'] = 'parquet'
+        else:
+            raise RuntimeError(f'Could not identify benchmark datatype: {benchmark}')
+
+        if 'read' in benchmark['name'].lower():
+            benchmark['label']['iotype'] = 'read'
+        elif 'write' in benchmark['name'].lower():
+            benchmark['label']['iotype'] = 'write'
+        else:
+            raise RuntimeError(f'Could not identify benchmark iotype: {benchmark}')
+
+        if 'snappy' in benchmark['name'].lower():
+            benchmark['label']['compression'] = 'snappy'
+        else:
+            benchmark['label']['compression'] = 'uncompressed'
+
+        match = re.search(r'\[([0-9])\]', benchmark['name'])
+        if match:
+            benchmark['label']['datasize'] = parametrized_sizes[int(match.group(1))]
+        else:
+            raise RuntimeError(f'Could not identify benchmark datasize: {benchmark}')
 
 ################################ Utilities ################################
+
+def filter_benchmarks(benchmarks, first=False, datatype=None, iotype=None, datasize=None, compression=None):
+    filtered = filter(
+        lambda item:
+            (not datatype or datatype.lower() == item['label']['datatype']) and
+            (not iotype or iotype.lower() == item['label']['iotype']) and
+            (not datasize or datasize == item['label']['datasize']) and
+            (not compression or compression == item['label']['compression']),
+        benchmarks
+    )
+    return next(filtered) if first else filtered
+
 def plot_preprocess(plot, font_large):
     if font_large:
         fontsize = 28
@@ -134,15 +187,6 @@ def plot_postprocess(plot, ax, fig, destination, output_type, show, font_large, 
 
 def plot_reset(plot):
     plot.rcdefaults()
-
-def filter_benchmarks(benchmarks, first=False, name_contains=None, classname_contains=None):
-    filtered = filter(
-        lambda item:
-            (not name_contains or name_contains.lower() in item['name'].lower()) and
-            (not classname_contains or classname_contains.lower() in item['className'].split('.')[-1].lower()),
-        benchmarks
-    )
-    return next(filtered) if first else filtered
 
 def supported_filetypes():
     '''Returns a `list(str)`, containing the supported filetypes to store for. E.g. ('pdf', 'svg',...). '''
@@ -190,36 +234,32 @@ def main():
     with open(args.path, 'r') as file:
         data = json.load(file)
 
+    # identify data
+    identify(data)
+
     # Plot data
     ## Plot writes
     if args.generator == 'line':
-        plotinstance.plot(title='Write performance', dataframes=filter_benchmarks(data['benchmarks'], name_contains='write'), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
-        plotinstance.plot(title='Read performance', dataframes=filter_benchmarks(data['benchmarks'], name_contains='read'), destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
+        for size in parametrized_sizes:
+            write = filter_benchmarks(data['benchmarks'], iotype='write', datasize=size)
+            read = filter_benchmarks(data['benchmarks'], iotype='read', datasize=size)
+            plotinstance.plot(title=f'Write performance ({size} rows)', dataframes=write, destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
+            plotinstance.plot(title=f'Read performance ({size} rows)', dataframes=read, destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
     elif args.generator == 'stackedbar':
-        csvRead = filter_benchmarks(data['benchmarks'], name_contains='read', classname_contains='CSV', first=True)
-        csvRead['label'] = 'Read'
-        csvWrite = filter_benchmarks(data['benchmarks'], name_contains='write', classname_contains='CSV', first=True)
-        csvWrite['label'] = 'Write'
-        parquetReadUncompressed = filter_benchmarks(data['benchmarks'], name_contains='readUncompressed', classname_contains='parquet', first=True)
-        parquetReadUncompressed['label'] = 'Read'
-        parquetWriteUncompressed = filter_benchmarks(data['benchmarks'], name_contains='writeUncompressed', classname_contains='parquet', first=True)
-        parquetWriteUncompressed['label'] = 'Write'
-        parquetReadSnappy = filter_benchmarks(data['benchmarks'], name_contains='readSnappy', classname_contains='parquet', first=True)
-        parquetReadSnappy['label'] = 'Read'
-        parquetWriteSnappy = filter_benchmarks(data['benchmarks'], name_contains='writeSnappy', classname_contains='parquet', first=True)
-        parquetWriteSnappy['label'] = 'Write'
-
+        midsize = sorted(parametrized_sizes)[(len(parametrized_sizes)//2)]
+        csv = filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize)
+        parquetUncompressed = filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed')
+        parquetSnappy = filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy')
+        
         plotinstance.plot(
             title='Read+Write performance',
-            dataframes=[
-                {'label': 'CSV', 'data': [csvRead, csvWrite]}, 
-                {'label': 'Parquet Uncompressed', 'data': [parquetReadUncompressed, parquetWriteUncompressed]},
-                {'label': 'Parquet Snappy', 'data': [parquetReadSnappy, parquetWriteSnappy]},
-            ],
+            dataframes=[list(csv), list(parquetUncompressed), list(parquetSnappy)],
+            bar_labels = ['CSV', 'Parquet Uncompressed', 'Parquet Snappy'],
+            segment_labels = ['Read', 'Write'],
             destination=args.destination, 
             output_type=args.output_type, 
             show=not args.no_show,
-            font_large=args.font_large
+            font_large=args.font_large,
         )
 
 
