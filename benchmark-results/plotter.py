@@ -13,6 +13,8 @@ import os
 import re
 import matplotlib.pyplot as plt
 
+# Fontsize used when large plot output is requested.
+fontsize_large = 28
 
 class PlotInterface:
     '''Simple interface for plotting implementations.'''
@@ -22,7 +24,7 @@ class PlotInterface:
 
 class LinePlot(PlotInterface):
     '''
-    Generates a line plot for given data frames. Expectes dataframes of form:
+    Generates a line plot for given data frames. Expects dataframes of form:
     ```
     dataframes=[dataframe, ...]
     dataframe={'name': <name'. 'className': <className>, 'metrics': {'timeNs': {'runs': <data>}}}
@@ -39,13 +41,14 @@ class LinePlot(PlotInterface):
 
             ax.set(xlabel='Execution number', ylabel='Time (milliseconds)', title=title if title else '')
             ax.set_ylim(ymin=0)
-            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title)
+            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title=title)
         finally:
             plot_reset(plt)
 
+
 class StackedBarPlot(PlotInterface):
     '''
-    Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expectes dataframes of form:
+    Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expects dataframes of form:
     ```
     dataframes=[bar, ...]
     bar=[dataframe,...] (all bars should have equivalent size)
@@ -92,21 +95,98 @@ class StackedBarPlot(PlotInterface):
             ax.grid(axis='y')
             ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
             ax.set_ylim(ymin=0)
-            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title)
+            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title=title)
         finally:
             plot_reset(plt)
 
+
+class ScalabilityBarPlot(PlotInterface):
+    '''
+    Generates subplots for groups of bars. Expects dataframes of form:
+    ```
+    dataframes=[group, ...]
+    group=[bar, ...] (all groups should have equivalent size)
+    bar=[dataframe,...] (all bars should have equivalent size)
+    dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
+    ```
+    '''
+    def plot(self, dataframes, destination, output_type, show, font_large, group_labels, bar_labels, segment_labels, title=None, width=None):
+        plot_preprocess(plt, font_large)
+        try:
+            group_length = len(dataframes[0]) # amount of bars in each group
+            bar_length = len(dataframes[0][0]) # amount of frames in each bar
+            fig, axs = plt.subplots(1, len(dataframes), sharey=True) # every group gets their own plot
+            fig.suptitle(title)
+
+            if not width:
+                width = 1.1 / len(dataframes)
+
+            if any(len(group) != group_length for group in dataframes):
+                print(f'Error: Found different group lengths (expected {group_length}): {[len(group) for group in dataframes]}.')
+
+            for group in dataframes:
+                if any(len(bar) != bar_length for bar in group):
+                    print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in group]}.')
+                    return
+
+            if len(group_labels) != len(dataframes):
+                print(f'Incorrect amount of labels for groups. Have {len(group_labels)} labels, {len(dataframes)} groups.')
+                return
+            
+            if len(bar_labels) != group_length:
+                print(f'Incorrect amount of labels for groups. Have {len(bar_labels)} labels, {group_length} groups.')
+                return
+            if len(segment_labels) != bar_length:
+                print(f'Incorrect amount of segment labels for bars. Have {len(segment_labels)} labels, {bar_length} segments per bar.')
+                return
+
+            print(f'Have {len(dataframes)} groups, {group_length} bars per group, {bar_length} frames per bar')
+            for group in dataframes:
+                for bar in group:
+                    for frame in bar:
+                        pass
+            # Y coordinate to snap shared y-axis to. 
+            ymax = max(max(x['metrics']['timeNs']['runs']) for x in np.array(dataframes).flatten())/1000000*1.1
+            for subplot_idx, group in enumerate(dataframes):
+                ax = axs[subplot_idx]
+                widths = [x for x in range(group_length)]
+                old_averages = np.zeros(group_length)
+                accumulated_std_errors = np.zeros(group_length)
+                for idx in range(bar_length):
+                    bar_data = list(np.array(bar[idx]['metrics']['timeNs']['runs'])/1000000 for bar in group)
+                    averages = np.array([dataframe.mean() for dataframe in bar_data])
+
+                    accumulated_std_errors = accumulated_std_errors + np.array(
+                        [np.std(dataframe[np.where((np.percentile(dataframe, 1) <= dataframe) * (dataframe <= np.percentile(dataframe, 99)))]
+                    ) for dataframe in bar_data])
+                    errors = accumulated_std_errors if idx+1 == bar_length else None
+                    ax.bar(widths, averages, width, bottom=old_averages, yerr=errors, label=segment_labels[idx], capsize=2)
+                    old_averages = old_averages + averages
+
+                for location, bar_height in zip(widths, old_averages):
+                    ax.text(location, bar_height, f"{bar_height:.0f}", fontsize=fontsize_large*0.8)
+
+                # ax.set_xticks(widths[group_length//2::group_length]+0.001, group_labels)
+                ax.set_xticks(widths, bar_labels, rotation=60, fontsize=fontsize_large*0.8)
+                ax.tick_params(axis='x', which='minor', direction='out', length=30)
+                ax.grid(axis='y')
+                # ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
+                ax.set_ylim(ymin=0, ymax=ymax)
+            plot_postprocess(plt, axs, fig, destination, output_type, show, font_large, loc='upper left', title=title)
+        finally:
+            plot_reset(plt)
 
 
 default_generator = 'line'
 generators = {
     'line': LinePlot,
-    'stackedbar': StackedBarPlot
+    'stackedbar': StackedBarPlot,
+    'scalability': ScalabilityBarPlot
 }
 parametrized_sizes = [1000, 5000, 10000, 15000, 20000]
 
 
-################################ Commandline ################################
+################################ Data ################################
 
 def identify(data):
     '''
@@ -143,7 +223,6 @@ def identify(data):
         else:
             raise RuntimeError(f'Could not identify benchmark datasize: {benchmark}')
 
-################################ Utilities ################################
 
 def filter_benchmarks(benchmarks, first=False, datatype=None, iotype=None, datasize=None, compression=None):
     filtered = filter(
@@ -156,20 +235,21 @@ def filter_benchmarks(benchmarks, first=False, datatype=None, iotype=None, datas
     )
     return next(filtered) if first else filtered
 
+
+################################ Utilities ################################
+
 def plot_preprocess(plot, font_large):
     if font_large:
-        fontsize = 28
+        
         font = {
             'family' : 'DejaVu Sans',
-            'size'   : fontsize
+            'size'   : fontsize_large
         }
         plot.rc('font', **font)
 
-def plot_postprocess(plot, ax, fig, destination, output_type, show, font_large, title=None):
-    if font_large:
-        ax.legend(loc='best', fontsize=18, frameon=False)
-    else:
-        ax.legend(loc='best', frameon=False)
+def plot_postprocess(plot, axes, fig, destination, output_type, show, font_large, loc='best', title=None):
+    axes = axes if isinstance(axes, (list, np.ndarray)) else [axes]
+    axes[0].legend(loc=loc, fontsize=18 if font_large else None, frameon=False)
 
     if font_large:
         fig.set_size_inches(16, 8)
@@ -247,21 +327,50 @@ def main():
             plotinstance.plot(title=f'Read performance ({size} rows)', dataframes=read, destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
     elif args.generator == 'stackedbar':
         midsize = sorted(parametrized_sizes)[(len(parametrized_sizes)//2)]
-        csv = filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize)
-        parquetUncompressed = filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed')
-        parquetSnappy = filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy')
-        
+        csv = [
+            filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize, iotype='write', first=True),
+            filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize, iotype='read', first=True)
+        ]
+        parquetUncompressed = [
+            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed', iotype='write', first=True),
+            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed', iotype='read', first=True)
+        ]
+        parquetSnappy = [
+            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy', iotype='write', first=True),
+            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy', iotype='read', first=True)
+        ]
         plotinstance.plot(
-            title='Read+Write performance',
+            title=f'Read+Write performance ({midsize} rows)',
             dataframes=[list(csv), list(parquetUncompressed), list(parquetSnappy)],
             bar_labels = ['CSV', 'Parquet Uncompressed', 'Parquet Snappy'],
-            segment_labels = ['Read', 'Write'],
+            segment_labels = ['Write', 'Read'],
             destination=args.destination, 
             output_type=args.output_type, 
             show=not args.no_show,
             font_large=args.font_large,
         )
-
+    elif args.generator == 'scalability':
+        dataframes = []
+        for size in sorted(parametrized_sizes):
+            readframes = sorted(
+                list(filter_benchmarks(data['benchmarks'], datasize=size)),
+                key=lambda x: x['label']['datatype']+x['label']['compression']+x['label']['iotype']
+            )
+            bars_csv = list(filter_benchmarks(readframes, datatype='csv'))
+            bars_pq_uncompressed = list(filter_benchmarks(readframes, datatype='parquet', compression='uncompressed'))
+            bars_pq_snappy = list(filter_benchmarks(readframes, datatype='parquet', compression='snappy'))
+            dataframes.append([bars_csv, bars_pq_uncompressed, bars_pq_snappy])
+        plotinstance.plot(
+            title=f'Read performance',
+            dataframes=dataframes,
+            group_labels = [str(x) for x in parametrized_sizes],
+            bar_labels = ['csv', 'pq', 'pq-snappy'],
+            segment_labels = ['Write', 'Read'],
+            destination=args.destination, 
+            output_type=args.output_type, 
+            show=not args.no_show,
+            font_large=args.font_large,
+        )
 
 if __name__ == '__main__':
     main()
