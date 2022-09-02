@@ -52,59 +52,6 @@ class LinePlot(PlotInterface):
         finally:
             plot_reset(plt)
 
-
-class StackedBarPlot(PlotInterface):
-    '''
-    Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expects dataframes of form:
-    dataframes=[bar, ...]
-    bar=[dataframe, ...] (all bars should have equivalent size)
-    dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
-    '''
-    def plot(self, dataframes, destination, output_type, show, font_large, bar_labels, segment_labels, title=None, width=None):
-        plot_preprocess(plt, font_large)
-        try:
-            fig, ax = plt.subplots()
-            bar_length = len(dataframes[0])
-            if not width:
-                width = 1.1 / len(dataframes)
-
-            if any(len(bar) != bar_length for bar in dataframes):
-                print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in dataframes]}.')
-                return
-
-            if len(bar_labels) != len(dataframes):
-                print(f'Incorrect amount of labels for bars. Have {len(bar_labels)} labels, {len(dataframes)} bars.')
-                return
-            if len(segment_labels) != bar_length:
-                print(f'Incorrect amount of segment labels for bars. Have {len(segment_labels)} labels, {bar_length} segments per bar.')
-                return
-
-            old_averages = np.zeros(len(dataframes))
-            accumulated_std_errors = np.zeros(len(dataframes))
-            for idx in range(bar_length):
-                bar_data = []
-                for bar in dataframes:
-                    bar_data.append(np.array(bar[idx]['metrics']['timeNs']['runs'])/1000000)
-
-                averages = np.array([dataframe.mean() for dataframe in bar_data])
-
-                accumulated_std_errors = accumulated_std_errors + np.array([np.std(dataframe[np.where((np.percentile(dataframe, 1) <= dataframe) * (dataframe <= np.percentile(dataframe, 99)))]) for dataframe in bar_data])
-                errors = accumulated_std_errors if idx+1 == bar_length else None
-                ax.bar(list(range(len(averages))), averages, width, bottom=old_averages, yerr=errors, label=segment_labels[idx], capsize=20)
-                old_averages = old_averages + averages
-
-            for idx, bar_height in enumerate(old_averages):
-                ax.text(idx+width/1.9, bar_height, f"{bar_height:.4f}")
-
-            plt.xticks([idx for idx in range(len(dataframes))], bar_labels)
-            ax.grid(axis='y')
-            ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
-            ax.set_ylim(ymin=0)
-            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, title=title)
-        finally:
-            plot_reset(plt)
-
-
 class ScalabilityBarPlot(PlotInterface):
     '''
     Generates subplots for groups of bars. Expects dataframes of form:
@@ -261,7 +208,6 @@ class RelativeBarPlot(PlotInterface):
 default_generator = 'line'
 generators = {
     'line': LinePlot,
-    'stackedbar': StackedBarPlot,
     'scalability': ScalabilityBarPlot,
     'relative': RelativeBarPlot
 }
@@ -415,37 +361,12 @@ def main():
     identify(data)
 
     # Plot data
-    ## Plot writes
     if args.generator == 'line':
         for size in parametrized_sizes:
             write = filter_benchmarks(data['benchmarks'], iotype='write', datasize=size)
             read = filter_benchmarks(data['benchmarks'], iotype='read', datasize=size)
             plotinstance.plot(title=f'Write performance ({size} rows)', dataframes=write, destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
             plotinstance.plot(title=f'Read performance ({size} rows)', dataframes=read, destination=args.destination, output_type=args.output_type, show=not args.no_show, font_large=args.font_large)
-    elif args.generator == 'stackedbar':
-        midsize = sorted(parametrized_sizes)[(len(parametrized_sizes)//2)]
-        csv = [
-            filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize, iotype='write', first=True),
-            filter_benchmarks(data['benchmarks'], datatype='csv', datasize=midsize, iotype='read', first=True)
-        ]
-        parquetUncompressed = [
-            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed', iotype='write', first=True),
-            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='uncompressed', iotype='read', first=True)
-        ]
-        parquetSnappy = [
-            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy', iotype='write', first=True),
-            filter_benchmarks(data['benchmarks'], datatype='parquet', datasize=midsize, compression='snappy', iotype='read', first=True)
-        ]
-        plotinstance.plot(
-            title=f'Read+Write performance ({midsize} rows)',
-            dataframes=[list(csv), list(parquetUncompressed), list(parquetSnappy)],
-            bar_labels = ['csv', 'pq', 'pq-snappy'],
-            segment_labels = ['Write', 'Read'],
-            destination=args.destination, 
-            output_type=args.output_type, 
-            show=not args.no_show,
-            font_large=args.font_large,
-        )
     elif args.generator == 'scalability':
         dataframes = []
         for size in sorted(parametrized_sizes):
@@ -458,11 +379,11 @@ def main():
             bars_pq_snappy = list(filter_benchmarks(readframes, datatype='parquet', compression='snappy'))
             dataframes.append([bars_csv, bars_pq_uncompressed, bars_pq_snappy])
         plotinstance.plot(
-            title=f'Read performance',
+            title=f'Read+Write performance',
             dataframes=dataframes,
             group_labels = [f'{x} rows' for x in parametrized_sizes],
             bar_labels = ['csv', 'pq', 'pq-snappy'],
-            segment_labels = ['Write', 'Read'],
+            segment_labels = ['Read', 'Write'],
             destination=args.destination, 
             output_type=args.output_type, 
             show=not args.no_show,
