@@ -2,11 +2,43 @@
 [![<Sebastiaan-Alvarez-Rodriguez>](https://circleci.com/gh/Sebastiaan-Alvarez-Rodriguez/parquet-android.svg?style=svg)](https://app.circleci.com/pipelines/github/Sebastiaan-Alvarez-Rodriguez/parquet-android)
 [![](https://jitpack.io/v/Sebastiaan-Alvarez-Rodriguez/parquet-android.svg)](https://jitpack.io/#Sebastiaan-Alvarez-Rodriguez/parquet-android)
 
-This project satisfies 2 goals:
- 1. Read and write snappy-compressed parquet on Android devices.
- 2. use minimal dependencies, minimal size.
+This project provides means to read from/write to parquet files.
+It allows to read/write uncompressed and snappy-compressed parquet.
+It uses minimal size.
 
-Current package is under 3MB.
+## Why
+We created this project because we wanted to export/import data between a database and a file efficiently in Android.
+On the internet, we found many sources stating one should write to CSV, or JSON, or even XML on Android,
+because that is what is supported.
+These storage schemas feature human-readability and simple manual editing of data.
+We care not for these traits.
+Instead, we focus on low latency, high throughput, efficient compression. 
+
+Parquet is a binary columnar storage format that supports nested data.
+For more information about Parquet, see [here](https://github.com/apache/parquet-format).
+
+## Performance
+After implementing this framework, we executed performance experiments.
+One of the results is visualised below.
+
+![Read+Write performance on a simple dataset](/benchmark-results/plots/Speedup_factor_of_uncompressed_pq_vs_csv.png)
+
+Here we proof that our parquet (pq) implementation is faster than the csv implementation.
+We plotted the 99%-confidence interval for the speedup factor of our implementation versus csv.
+
+In layman's terms, the plot shows '*how many times pq is faster than csv*' for a number of group sizes.
+E.g. by looking at this picture, at x=10,000, we can state that:
+ - 'we are 99% confident that pq is between 12 and 12.5 times faster than csv for 10,000 rows'.
+ - 'in our measurements, pq was on average 12.25 times faster than csv for 10,0000 rows'.
+
+Overall, we conclude that:
+ - For the measurements, pq is between 10-16 times faster than csv, with certainty level $\alpha=99$%.
+ - pq gets relatively faster than csv when increasing the dataset size. 
+ The predicted speedup factor of pq versus csv is given by formula $0.00000001x^2+0.0001x+10.367$, where $x$ is the amount of rows.
+ - pq is faster in aspect of both reading and writing.
+
+For more plots and more statistics, see [stats.md](/stats.md).
+If you believe we made a statistical computation error, please create a new issue.
 
 ## Versioning
 Parquet-android versioning scheme follows the versions of the parquet library.
