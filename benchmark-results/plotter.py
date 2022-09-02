@@ -4,14 +4,21 @@ Written for python 3.10.4. Theoretically, this works with python 3.8 and up.
 Requires the following pips:
   matplotlib
   numpy
+  scipy
+  sklearn
 '''
 
 import argparse
 import json
-import numpy as np
+import math
 import os
 import re
+
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats
+from sklearn.metrics import r2_score
+
 
 # Fontsize used when large plot output is requested.
 fontsize_large = 28
@@ -49,11 +56,9 @@ class LinePlot(PlotInterface):
 class StackedBarPlot(PlotInterface):
     '''
     Generates stacked barplots, with error whiskers, following https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/bar_stacked.html. Expects dataframes of form:
-    ```
     dataframes=[bar, ...]
-    bar=[dataframe,...] (all bars should have equivalent size)
+    bar=[dataframe, ...] (all bars should have equivalent size)
     dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
-    ```
     '''
     def plot(self, dataframes, destination, output_type, show, font_large, bar_labels, segment_labels, title=None, width=None):
         plot_preprocess(plt, font_large)
@@ -103,12 +108,10 @@ class StackedBarPlot(PlotInterface):
 class ScalabilityBarPlot(PlotInterface):
     '''
     Generates subplots for groups of bars. Expects dataframes of form:
-    ```
     dataframes=[group, ...]
     group=[bar, ...] (all groups should have equivalent size)
-    bar=[dataframe,...] (all bars should have equivalent size)
+    bar=[dataframe, ...] (all bars should have equivalent size)
     dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
-    ```
     '''
     def plot(self, dataframes, destination, output_type, show, font_large, group_labels, bar_labels, segment_labels, title=None, width=None):
         plot_preprocess(plt, font_large)
@@ -117,13 +120,15 @@ class ScalabilityBarPlot(PlotInterface):
             bar_length = len(dataframes[0][0]) # amount of frames in each bar
             fig, axs = plt.subplots(1, len(dataframes), sharey=True) # every group gets their own plot
             fig.suptitle(title)
+            fig.supxlabel('Data type', fontsize=fontsize_large*0.95)
+            fig.supylabel('Execution time (milliseconds)', fontsize=fontsize_large*0.95)
 
             if not width:
                 width = 1.1 / len(dataframes)
 
             if any(len(group) != group_length for group in dataframes):
                 print(f'Error: Found different group lengths (expected {group_length}): {[len(group) for group in dataframes]}.')
-
+                return
             for group in dataframes:
                 if any(len(bar) != bar_length for bar in group):
                     print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in group]}.')
@@ -141,10 +146,6 @@ class ScalabilityBarPlot(PlotInterface):
                 return
 
             print(f'Have {len(dataframes)} groups, {group_length} bars per group, {bar_length} frames per bar')
-            for group in dataframes:
-                for bar in group:
-                    for frame in bar:
-                        pass
             # Y coordinate to snap shared y-axis to. 
             ymax = max(max(x['metrics']['timeNs']['runs']) for x in np.array(dataframes).flatten())/1000000*1.1
             for subplot_idx, group in enumerate(dataframes):
@@ -164,15 +165,95 @@ class ScalabilityBarPlot(PlotInterface):
                     old_averages = old_averages + averages
 
                 for location, bar_height in zip(widths, old_averages):
-                    ax.text(location, bar_height, f"{bar_height:.0f}", fontsize=fontsize_large*0.8)
+                    ax.text(location+width/2, bar_height, f"{bar_height:.0f}", fontsize=fontsize_large*0.8)
 
-                # ax.set_xticks(widths[group_length//2::group_length]+0.001, group_labels)
-                ax.set_xticks(widths, bar_labels, rotation=60, fontsize=fontsize_large*0.8)
+                ax.set_xticks(widths, bar_labels, rotation=90, fontsize=fontsize_large*0.8)
                 ax.tick_params(axis='x', which='minor', direction='out', length=30)
                 ax.grid(axis='y')
-                # ax.set(xlabel='Data type', ylabel='Execution time (milliseconds)', title=title)
+                ax.title.set_text(group_labels[subplot_idx])
+                ax.title.set_fontsize(fontsize_large*0.85)
                 ax.set_ylim(ymin=0, ymax=ymax)
             plot_postprocess(plt, axs, fig, destination, output_type, show, font_large, loc='upper left', title=title)
+        finally:
+            plot_reset(plt)
+
+
+class RelativeBarPlot(PlotInterface):
+    '''
+    Shows ratio between 2 groups, and predicts relation between x and y coordinates. Expects dataframes of form:
+    dataframes=[group, ...]
+    group=[bar, bar1] (expect 2 bars to compare per group)
+    bar=[dataframe, ...] (all bars should have equivalent size)
+    dataframe={'name': <name>. 'className': <className>, metrics': {'timeNs': {'runs': <data>}}}
+    '''
+    def plot(self, dataframes, destination, output_type, show, font_large, group_indices, ylabel, title=None):
+        plot_preprocess(plt, font_large)
+        try:
+            group_length = len(dataframes[0]) # amount of bars in each group
+            bar_length = len(dataframes[0][0]) # amount of frames in each bar
+            fig, ax = plt.subplots()
+            
+            if group_length != 2:
+                print(f'Error: Require 2 bars per group to compare performance (found {group_length})')
+                return
+            if any(len(group) != group_length for group in dataframes):
+                print(f'Error: Found different group lengths (expected {group_length}): {[len(group) for group in dataframes]}.')
+                return
+            for group in dataframes:
+                if any(len(bar) != bar_length for bar in group):
+                    print(f'Error: Found different bar lengths (expected {bar_length}): {[len(bar) for bar in group]}.')
+                    return
+
+            print(f'Have {len(dataframes)} groups, {group_length} bars per group, {bar_length} frames per bar')
+            old_averages = np.zeros(group_length)
+            accumulated_std_errors = np.zeros(group_length)
+
+            ratio_means = np.empty(len(dataframes))
+            ratio_errors = np.empty(len(dataframes))
+            for group_idx, group in enumerate(dataframes):
+                bar0_total = sum(np.array(dataframe['metrics']['timeNs']['runs'])/1000000 for dataframe in group[0])
+                bar1_total = sum(np.array(dataframe['metrics']['timeNs']['runs'])/1000000 for dataframe in group[1])
+                # bar0_total = np.array(draw_bootstrap_replicates(data=bar0_total, size=len(bar0_total)*100))
+                # bar1_total = np.array(draw_bootstrap_replicates(data=bar1_total, size=len(bar1_total)*100))
+                if len(bar0_total) < 30 or len(bar0_total) < 30:
+                    print('Error: Too little data')
+                    return
+
+                z_score = 2.576 #99-percent interval from z-table
+
+                diff_mean = bar0_total.mean() - bar1_total.mean()
+                diff_std = math.sqrt((np.std(bar0_total)**2 / len(bar0_total))+(np.std(bar1_total)**2 / len(bar1_total)))
+
+                diff_margin_of_error = z_score*diff_std
+                diff_percentile5  = diff_mean - diff_margin_of_error
+                diff_percentile95 = diff_mean + diff_margin_of_error
+
+                ratio_means[group_idx] = 1 + diff_mean / bar1_total.mean()
+                ratio_errors[group_idx] = ratio_means[group_idx] - (1 + diff_percentile5/bar1_total.mean())
+
+            xlim = max(group_indices)*1.05
+            # Visualization:
+            # https://pyquestions.com/show-confidence-limits-and-prediction-limits-in-scatter-plot
+            ax.errorbar(group_indices, ratio_means, yerr=ratio_errors, fmt='ok')
+            
+            # Code below for normalization prediction.
+            func = lambda x, a, b, c: a*x**2 + b*x + c
+            popt, pcov = scipy.optimize.curve_fit(f=func, xdata=group_indices, ydata=ratio_means, sigma=ratio_errors)
+            x_fit = np.insert(np.append(group_indices, xlim), 0, 1)
+            found_curve = func(group_indices, *popt)
+            expectation_curve = func(x_fit, *popt)
+            ax.plot(x_fit, expectation_curve, linestyle='-', marker='o', label=f'trend=${popt[-3]:.8f}x^2+{popt[-2]:.4f}x+{popt[-1]:.3f}$ ($r^2$ = {r2_score(ratio_means, found_curve):.3f})')
+
+
+            # Estimation region
+            ax.fill_between(group_indices, ratio_means-ratio_errors, ratio_means+ratio_errors, color='gray', alpha=0.2, label='99% confidence interval')
+            
+            ax.set_xticks(group_indices, group_indices)
+            ax.grid(axis='y')
+            ax.set(xlabel='Data size', ylabel=ylabel, title=title)
+            ax.set_ylim(ymin=0)
+            ax.set_xlim(xmin=0, xmax=xlim)
+            plot_postprocess(plt, ax, fig, destination, output_type, show, font_large, loc='upper left', title=title)
         finally:
             plot_reset(plt)
 
@@ -181,9 +262,10 @@ default_generator = 'line'
 generators = {
     'line': LinePlot,
     'stackedbar': StackedBarPlot,
-    'scalability': ScalabilityBarPlot
+    'scalability': ScalabilityBarPlot,
+    'relative': RelativeBarPlot
 }
-parametrized_sizes = [1000, 5000, 10000, 15000, 20000]
+parametrized_sizes = np.array([1000, 5000, 10000, 15000, 20000])
 
 
 ################################ Data ################################
@@ -284,6 +366,21 @@ def store_plot(destination, plot, title, output_type):
     plot.savefig(f'{os.path.join(destination, title.replace(" ", "_") if title else "default")}.{output_type}')
 
 
+################################ Statistics ################################
+
+def is_normal(samples, confidence=0.05):
+    '''Returns `True` iff given samples form a normal distribution.'''
+    return scipy.stats.shapiro(samples).pvalue >= confidence
+
+
+def draw_bootstrap_replicates(data, size, func=np.mean):
+    '''creates a bootstrap sample, computes replicates and returns replicated array'''
+    return [func(np.random.choice(data, size=len(data))) for x in range(size)]
+
+def compute_z(mean0, mean1, std0, std1, size0, size1):
+    return (mean0 - mean1) / (math.sqrt((std0/math.sqrt(size0))**2)+(std1/math.sqrt(size1))**2)
+
+                
 ################################ Commandline ################################
 
 def add_args(parser):
@@ -342,7 +439,7 @@ def main():
         plotinstance.plot(
             title=f'Read+Write performance ({midsize} rows)',
             dataframes=[list(csv), list(parquetUncompressed), list(parquetSnappy)],
-            bar_labels = ['CSV', 'Parquet Uncompressed', 'Parquet Snappy'],
+            bar_labels = ['csv', 'pq', 'pq-snappy'],
             segment_labels = ['Write', 'Read'],
             destination=args.destination, 
             output_type=args.output_type, 
@@ -363,9 +460,29 @@ def main():
         plotinstance.plot(
             title=f'Read performance',
             dataframes=dataframes,
-            group_labels = [str(x) for x in parametrized_sizes],
+            group_labels = [f'{x} rows' for x in parametrized_sizes],
             bar_labels = ['csv', 'pq', 'pq-snappy'],
             segment_labels = ['Write', 'Read'],
+            destination=args.destination, 
+            output_type=args.output_type, 
+            show=not args.no_show,
+            font_large=args.font_large,
+        )
+    elif args.generator == 'relative':
+        dataframes = []
+        for size in sorted(parametrized_sizes):
+            readframes = sorted(
+                list(filter_benchmarks(data['benchmarks'], datasize=size)),
+                key=lambda x: x['label']['datatype']+x['label']['compression']+x['label']['iotype']
+            )
+            bars_csv = list(filter_benchmarks(readframes, datatype='csv'))
+            bars_pq_uncompressed = list(filter_benchmarks(readframes, datatype='parquet', compression='uncompressed'))
+            dataframes.append([bars_csv, bars_pq_uncompressed])
+        plotinstance.plot(
+            title=f'Speedup factor of uncompressed pq vs csv',
+            dataframes=dataframes,
+            group_indices=parametrized_sizes,
+            ylabel='Speedup factor',
             destination=args.destination, 
             output_type=args.output_type, 
             show=not args.no_show,
