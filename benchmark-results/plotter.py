@@ -285,7 +285,7 @@ def plot_postprocess(plot, axes, fig, destination, output_type, show, font_large
     fig.tight_layout()
 
     if destination:
-       store_plot(destination, plt, title, output_type)
+       plot_store(destination, plt, title, output_type)
 
     if font_large:
         plot_reset(plot)
@@ -307,9 +307,10 @@ def filetype_is_supported(extension):
     '''Returns `True` iff matplotlib supports filetype, `False` otherwise.'''
     return str(extension).strip().lower() in supported_filetypes()
 
-def store_plot(destination, plot, title, output_type):
+def plot_store(destination, plot, title, output_type):
     os.makedirs(destination, exist_ok=True)
-    plot.savefig(f'{os.path.join(destination, title.replace(" ", "_") if title else "default")}.{output_type}')
+    title = title.replace(" ", "_").replace("(", "").replace(")", "") if title else "default"
+    plot.savefig(f'{os.path.join(destination, title)}.{output_type}')
 
 
 ################################ Statistics ################################
@@ -379,7 +380,7 @@ def main():
             bars_pq_snappy = list(filter_benchmarks(readframes, datatype='parquet', compression='snappy'))
             dataframes.append([bars_csv, bars_pq_uncompressed, bars_pq_snappy])
         plotinstance.plot(
-            title=f'Read+Write performance',
+            title=f'Data Scalability',
             dataframes=dataframes,
             group_labels = [f'{x} rows' for x in parametrized_sizes],
             bar_labels = ['csv', 'pq', 'pq-snappy'],
