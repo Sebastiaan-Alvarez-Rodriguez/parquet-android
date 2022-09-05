@@ -6,22 +6,39 @@ This project provides means to read from/write to parquet files.
 It allows to read/write uncompressed and snappy-compressed parquet.
 It uses minimal size.
 
-## Why
-We created this project because we wanted to export/import data between a database and a file efficiently in Android.
-On the internet, we found many sources stating one should write to CSV, or JSON, or even XML on Android,
-because that is what is supported.
-These storage schemas feature human-readability and simple manual editing of data.
-We care not for these traits.
-Instead, we focus on low latency, high throughput, efficient compression. 
+## Motivation
+We created parquet-android to make the parquet file format available for Android devices.
 
-Parquet is a binary columnar storage format that supports nested data.
-For more information about Parquet, see [here](https://github.com/apache/parquet-format).
+Many people incorrectly assume that parquet is a '*server*' file format, because it is often related to distributed data processing frameworks.
+Parquet is actually just an efficient binary columnar file format.
+For more information about parquet, see [here](https://github.com/apache/parquet-format).
+
+'Established' formats for reading/writing files on android include CSV, JSON, and XML.
+These formats are text-based, featuring human-readability and simple manual editing of stored data.
+It makes sense to use parquet instead, when developers want low latency, high read/write throughput, efficient compression, and low performance variability.  
+As generally holds for file protocols, binary protocols such as parquet are more efficient than text-based protocols,
+since they store less redundant data, do not need elaborate text parsers, and produce smaller files.
+
+We found no correct implementations for parquet-on-android\*, so we created this project.
+
+> \*=at the time of searching, (2022-07 until 2022-09).
+
+## Related
+Several frameworks provide parquet functionality in Java,
+such as [parquet-mr](https://github.com/apache/parquet-mr).
+Since android runs apps in a JVM, one might think Java parquet-implementations work on android devices.  
+Sadly, these Java implementations do not work on android.  
+These Java implementations use reflection to access JVM-specific unsafe methods and fields, which may or may not exist depending on the JVM used.
+While the implementations work for openJDK, they crash on runtime with the android JDK.
+
 
 ## Performance
-After implementing this framework, we executed performance experiments.
-One of the results is visualised below.
+We provide more detailed information in [stats.md](/stats.md).
 
-![Read+Write performance on a simple dataset](/benchmark-results/plots/Speedup_factor_of_uncompressed_pq_vs_csv.png)
+Below is a summarizing picture of the benchmark results to quickly review a difference.
+![Scalability](/benchmark-results/plots/Data_Scalability.png)
+*Error bars show standard deviation of read+write performance, 99-percentile.
+The numbers on the bars represent the average read+write performance, in milliseconds.*
 
 Here we proof that our parquet (pq) implementation is faster than the csv implementation.
 We plotted the 99%-confidence interval for the speedup factor of our implementation versus csv.
